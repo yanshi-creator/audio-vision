@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track My Service | Audio Vision</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 0; margin: 0; color: #333; }
+        .header { background: #1a1a1a; color: #f1c40f; padding: 20px; text-align: center; border-bottom: 4px solid #f1c40f; }
+        .header h1 { margin: 0; font-size: 24px; letter-spacing: 1px; }
+        .header p { margin: 5px 0 0 0; font-size: 13px; color: #ccc; }
+        
+        .container { max-width: 500px; margin: 30px auto; padding: 0 15px; }
+        
+        .search-box { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); text-align: center; }
+        .search-box h3 { margin-top: 0; color: #333; }
+        input[type="tel"] { width: 100%; padding: 15px; margin: 15px 0; border: 2px solid #ddd; border-radius: 8px; font-size: 18px; text-align: center; box-sizing: border-box; outline: none; transition: 0.3s;}
+        input[type="tel"]:focus { border-color: #f1c40f; }
+        .btn-track { background: #f1c40f; color: #000; font-size: 16px; font-weight: bold; border: none; padding: 15px; width: 100%; border-radius: 8px; cursor: pointer; transition: 0.2s;}
+        .btn-track:hover { background: #d4ac0d; }
+        .btn-track:disabled { background: #ccc; cursor: not-allowed; }
+
+        #resultsArea { display: none; margin-top: 30px; }
+        .welcome-text { font-size: 20px; font-weight: bold; margin-bottom: 20px; text-align: center; color: #1a1a1a;}
+        
+        .section-title { font-size: 16px; font-weight: bold; color: #555; border-bottom: 2px solid #ddd; padding-bottom: 5px; margin-bottom: 15px; margin-top: 25px; text-transform: uppercase;}
+        
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 15px; border-left: 5px solid #ccc; position: relative;}
+        .card.active-repair { border-left-color: #e74c3c; }
+        .card.resolved { border-left-color: #27ae60; }
+        .card.purchase { border-left-color: #007bff; }
+        
+        .card-header { display: flex; justify-content: space-between; font-size: 12px; color: #888; font-weight: bold; margin-bottom: 10px; padding-bottom: 10px; border-bottom: 1px dashed #eee;}
+        .status-badge { background: #fef0f0; color: #c0392b; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; border: 1px solid #fadbd8;}
+        .status-badge.ok { background: #e8f5e9; color: #2e7d32; border-color: #c8e6c9;}
+        
+        .product-title { font-size: 18px; font-weight: bold; margin: 0 0 5px 0; color: #1a1a1a; }
+        .product-detail { font-size: 14px; color: #555; line-height: 1.5; }
+        
+        /* The most important part for the customer: Live Updates */
+        .live-update { background: #fffde7; border: 1px solid #fff59d; padding: 12px; border-radius: 8px; margin-top: 15px; font-size: 14px; color: #333; }
+        .live-update strong { color: #f39c12; display: block; margin-bottom: 3px; font-size: 12px; text-transform: uppercase;}
+        
+        .empty-msg { text-align: center; color: #888; padding: 20px; background: white; border-radius: 8px; font-style: italic;}
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>AUDIO VISION</h1>
+        <p>Customer Service & Warranty Tracker</p>
+    </div>
+
+    <div class="container">
+        
+        <div class="search-box" id="searchBox">
+            <h3>Track Your Devices</h3>
+            <p style="font-size:14px; color:#666;">Enter your registered phone number to check your repair status or view purchase history.</p>
+            <input type="tel" id="phoneInput" placeholder="10-Digit Phone Number" maxlength="10">
+            <button id="trackBtn" class="btn-track" onclick="trackService()">GET STATUS</button>
+        </div>
+
+        <div id="resultsArea">
+            <div class="welcome-text" id="custName">Welcome!</div>
+            
+            <div class="section-title">⚠️ Active Service Tickets</div>
+            <div id="activeTicketsList"></div>
+
+            <div class="section-title">🛍️ My Devices & Purchase History</div>
+            <div id="purchaseHistoryList"></div>
+            
+            <button onclick="location.reload()" style="width:100%; margin-top:20px; padding:15px; background:#eee; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">Search Another Number</button>
+        </div>
+
+    </div>
+
+    <script>
+        // ⚠️ Uses the exact same backend as your Staff Portal!
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbwxjAELcQkLo3oeLGc86t20OE5Q7n85ifu7htNI8NLovU78AcH6EjGp4331vdWswXqw/exec';
+
+        async function trackService() {
+            const phone = document.getElementById('phoneInput').value.trim();
+            const btn = document.getElementById('trackBtn');
+            
+            if(phone.length < 5) { 
+                alert("Please enter a valid phone number."); 
+                return; 
+            }
+            
+            btn.innerText = "SEARCHING DATABASE...";
+            btn.disabled = true;
+
+            try {
+                const resp = await fetch(scriptURL + "?action=search&phone=" + encodeURIComponent(phone));
+                const data = await resp.json();
+                
+                if(data.length === 0) {
+                    alert("We couldn't find any records for this phone number. Please check the number or contact the store.");
+                    btn.innerText = "GET STATUS";
+                    btn.disabled = false;
+                    return;
+                }
+
+                // Switch Views
+                document.getElementById('searchBox').style.display = 'none';
+                document.getElementById('resultsArea').style.display = 'block';
+                
+                // Set Welcome Name
+                document.getElementById('custName').innerText = "Hello, " + data[0].name + "!";
+                
+                const activeList = document.getElementById('activeTicketsList');
+                const historyList = document.getElementById('purchaseHistoryList');
+                
+                let activeCount = 0;
+                let historyCount = 0;
+
+                data.forEach(item => {
+                    const dateStr = new Date(item.date).toLocaleDateString();
+                    const purDateStr = item.purchaseDate ? new Date(item.purchaseDate).toLocaleDateString() : 'Unknown';
+                    
+                    const isComplaint = item.status !== "Working Fine (Just logging purchase)";
+                    const isActiveComplaint = isComplaint && item.status !== "Resolved";
+
+                    let cardHtml = "";
+
+                    if (isActiveComplaint) {
+                        // ACTIVE REPAIR TICKET UI
+                        activeCount++;
+                        cardHtml = `
+                        <div class="card active-repair">
+                            <div class="card-header">
+                                <span>Logged: ${dateStr}</span>
+                                <span>Ticket: ${item.complaintNo || 'Pending'}</span>
+                            </div>
+                            <h3 class="product-title">${item.brand} ${item.model}</h3>
+                            <div class="product-detail">
+                                <b>Your Issue:</b> ${item.problem}
+                            </div>
+                            <div style="margin-top:10px;">
+                                <span class="status-badge">${item.status}</span>
+                            </div>
+                            ${item.notes ? `
+                            <div class="live-update">
+                                <strong>⚡ Latest Update from Staff:</strong>
+                                ${item.notes}
+                            </div>` : `
+                            <div class="live-update" style="background:#f8f9fa; border-color:#eee; color:#888;">
+                                <i>Your request is in our system. Awaiting staff update.</i>
+                            </div>`}
+                        </div>`;
+                        activeList.innerHTML += cardHtml;
+                    
+                    } else {
+                        // PURCHASE HISTORY & RESOLVED TICKETS UI
+                        historyCount++;
+                        let receiptInfo = item.receipt ? ` | Receipt: ${item.receipt}` : '';
+                        
+                        cardHtml = `
+                        <div class="card ${isComplaint ? 'resolved' : 'purchase'}">
+                            <div class="card-header">
+                                <span>${isComplaint ? 'Resolved Repair' : 'Store Purchase'}</span>
+                                <span class="status-badge ok">${isComplaint ? '✅ Fixed' : '✅ Active'}</span>
+                            </div>
+                            <h3 class="product-title">${item.brand} ${item.model}</h3>
+                            <div class="product-detail">
+                                <b>Purchase Date:</b> ${purDateStr} <br>
+                                ${item.price ? `<b>Price Paid:</b> ₹${item.price} ${receiptInfo}` : ''}
+                            </div>
+                            ${isComplaint ? `<div class="product-detail" style="margin-top:8px; border-top:1px solid #eee; padding-top:8px;"><b>Past Issue:</b> ${item.problem}</div>` : ''}
+                        </div>`;
+                        historyList.innerHTML += cardHtml;
+                    }
+                });
+
+                if (activeCount === 0) {
+                    activeList.innerHTML = '<div class="empty-msg">Great news! You have no devices currently in for repair.</div>';
+                }
+                if (historyCount === 0) {
+                    historyList.innerHTML = '<div class="empty-msg">No past purchase history found.</div>';
+                }
+
+            } catch (err) {
+                alert("Error connecting to the system. Please try again later.");
+                btn.innerText = "GET STATUS";
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>
