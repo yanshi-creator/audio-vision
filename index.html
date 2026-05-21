@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio Vision | Retail Service Tracker</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 0; margin: 0; color: #333; }
+        
+        /* HEADER & SEARCH */
+        .header { background: #1a1a1a; color: white; padding: 15px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100;}
+        .logo { font-size: 22px; font-weight: bold; letter-spacing: 1px; color: #f1c40f; margin-bottom: 10px;}
+        .search-container { display: flex; gap: 8px; flex: 1; max-width: 400px; min-width: 280px;}
+        .search-container input { flex: 1; padding: 10px; border-radius: 6px; border: none; font-size: 14px; outline: none; }
+        .search-container button { background: #f1c40f; color: #000; font-weight: bold; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; transition: 0.2s;}
+        .search-container button:hover { background: #d4ac0d; }
+        
+        .container { max-width: 800px; margin: 20px auto; padding: 0 15px; }
+
+        /* TABS */
+        .tab-btn { background: #ddd; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px 6px 0 0; cursor: pointer; margin-right: 5px; color: #555;}
+        .tab-btn.active { background: #fff; color: #000; border-bottom: 3px solid #f1c40f; }
+
+        /* DASHBOARD SECTION */
+        .dashboard-area { background: white; padding: 20px; border-radius: 0 8px 8px 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .card { border: 1px solid #eee; border-left: 5px solid #e74c3c; border-radius: 6px; padding: 15px; margin-bottom: 15px; background: #fffaf9;}
+        .card.Pending { border-left-color: #e74c3c; background: #fffaf9;}
+        .card.Contacted { border-left-color: #f39c12; background: #fffdf7;}
+        .card.Resolved { border-left-color: #27ae60; background: #f9fff9;}
+        .card-header { display: flex; justify-content: space-between; font-size: 12px; color: #888; font-weight: bold; margin-bottom: 8px;}
+        .btn-update { margin-top:10px; background: #34495e; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold;}
+        
+        /* CUSTOMER PROFILE SECTION */
+        .profile-area { display: none; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .profile-header { background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #eee;}
+        .profile-name { font-size: 24px; font-weight: bold; margin: 0 0 5px 0; color: #1a1a1a;}
+        .profile-tags { display: flex; gap: 10px; margin-top: 10px; font-size: 13px; }
+        .tag { background: #e3f2fd; color: #0056b3; padding: 4px 10px; border-radius: 12px; font-weight: bold; }
+        .history-list { border-left: 2px solid #ccc; margin-left: 10px; padding-left: 15px; }
+        .history-item { margin-bottom: 15px; position: relative; }
+        .history-item::before { content: ''; position: absolute; left: -21px; top: 5px; width: 10px; height: 10px; background: #ccc; border-radius: 50%; }
+        .staff-notes { background:#e9ecef; padding:10px; border-radius:6px; margin-top:10px; font-size:13px; white-space: pre-wrap; font-family: monospace;}
+
+        /* MODAL FORM */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; overflow-y: auto;}
+        .modal-content { background: white; max-width: 500px; margin: 40px auto; padding: 25px; border-radius: 12px; position: relative;}
+        .close-btn { position: absolute; right: 20px; top: 20px; font-size: 24px; cursor: pointer; color: #888; }
+        
+        label { font-weight: bold; display: block; margin-top: 15px; font-size: 13px; color: #444;}
+        input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; font-family: sans-serif;}
+        .flex-row { display: flex; gap: 10px; }
+        .flex-row > div { flex: 1; }
+        .submit-btn { background: #1a1a1a; color: #f1c40f; padding: 15px; border: none; width: 100%; font-size: 16px; font-weight: bold; border-radius: 6px; margin-top: 25px; cursor: pointer; transition: 0.3s;}
+        .submit-btn:disabled { background: #666; color: #ccc; cursor: not-allowed; }
+        .empty-msg { text-align: center; color: #888; font-style: italic; padding: 30px; background: #f9f9f9; border-radius: 8px; border: 1px dashed #ccc; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="logo">AUDIO VISION</div>
+        <div class="search-container">
+            <input type="tel" id="searchInput" placeholder="Search Phone Number..." maxlength="10">
+            <button id="searchBtn" onclick="searchCustomer()">SEARCH</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <div>
+            <button class="tab-btn active" id="tabActive" onclick="showView('dashboard')">Active Complaints</button>
+            <button class="tab-btn" id="tabProfile" style="display:none;" onclick="showView('profile')">Customer Profile</button>
+        </div>
+
+        <div id="dashboardView" class="dashboard-area">
+            <h3 style="margin-top:0;">Action Required Today <button onclick="loadActiveBoard()" style="float:right; cursor:pointer;">🔄 Refresh</button></h3>
+            <div id="activeList">
+                <div class="empty-msg">Loading active jobs...</div>
+            </div>
+        </div>
+
+        <div id="profileView" class="profile-area">
+            <div class="profile-header">
+                <h2 class="profile-name" id="profName">Loading...</h2>
+                <div style="color: #666; font-size: 14px;" id="profContact"></div>
+                <div class="profile-tags">
+                    <div class="tag">🛍️ Total Purchases: <span id="profPurchases">0</span></div>
+                    <div class="tag" style="background:#ffebee; color:#c62828;">🔧 Total Complaints: <span id="profComplaints">0</span></div>
+                </div>
+                <button onclick="openForm()" style="background:#28a745; color:white; border:none; padding:10px 15px; border-radius:4px; margin-top:15px; font-weight:bold; cursor:pointer;">+ Log New Record / Complaint</button>
+            </div>
+
+            <h3>Service & Purchase History</h3>
+            <div class="history-list" id="historyList">
+                <i style="color:#888; font-size:14px;">Customer history will appear here.</i>
+            </div>
+        </div>
+    </div>
+
+    <div id="formModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeForm()">&times;</span>
+            <h2 style="margin-top:0; color:#1a1a1a;">Log New Record</h2>
+            
+            <form id="recordForm">
+                <label>Customer Name *</label>
+                <input type="text" name="cName" id="fName" required>
+                
+                <div class="flex-row">
+                    <div><label>Primary Phone *</label><input type="tel" name="cPhone1" id="fPhone1" required></div>
+                    <div><label>Secondary Phone</label><input type="tel" name="cPhone2" id="fPhone2"></div>
+                </div>
+
+                <label>Email Address</label>
+                <input type="email" name="cEmail" id="fEmail">
+                
+                <label>Full Address *</label>
+                <textarea name="cAddress" id="fAddress" rows="2" required></textarea>
+                
+                <div class="flex-row">
+                    <div><label>Area *</label><input type="text" name="cArea" id="fArea" required></div>
+                    <div><label>Pincode *</label><input type="text" name="cPincode" id="fPincode" required></div>
+                </div>
+
+                <div style="border-top: 2px dashed #ccc; margin: 20px 0;"></div>
+
+                <div class="flex-row">
+                    <div><label>Purchase Date</label><input type="date" name="pDate"></div>
+                    <div>
+                        <label>Brand *</label>
+                        <select name="cBrand" id="brandSelect" onchange="toggleCustomBrand()" required>
+                            <option value="" disabled selected>Select Brand</option>
+                            <option value="LG">LG</option>
+                            <option value="Mitsubishi">Mitsubishi</option>
+                            <option value="VU">VU</option>
+                            <option value="Voltas">Voltas</option>
+                            <option value="Hitachi">Hitachi</option>
+                            <option value="Panasonic">Panasonic</option>
+                            <option value="Godrej">Godrej</option>
+                            <option value="Samsung">Samsung</option>
+                            <option value="Other">Other (Specify)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <input type="text" name="customBrand" id="customBrand" placeholder="Type Brand Name..." style="display:none; margin-top:5px;">
+
+                <label>Model Number *</label>
+                <input type="text" name="cModel" required>
+
+                <label>Problem / Notes *</label>
+                <textarea name="cProblem" rows="3" placeholder="What is the issue?" required></textarea>
+
+                <label>Current Status *</label>
+                <select name="cStatus" required>
+                    <option value="Working Fine (Just logging purchase)">Working Fine (Just logging purchase)</option>
+                    <option value="Pending Brand Call" selected>Pending Brand Call (Needs Action)</option>
+                    <option value="Brand Contacted">Brand Contacted (Waiting for Tech)</option>
+                </select>
+
+                <button type="submit" id="subBtn" class="submit-btn">SAVE RECORD</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // ⚠️ YOUR SPECIFIC GOOGLE APPS SCRIPT URL ⚠️
+        const scriptURL = 'https://script.google.com/macros/s/AKfycbwxjAELcQkLo3oeLGc86t20OE5Q7n85ifu7htNI8NLovU78AcH6EjGp4331vdWswXqw/exec';
+
+        window.onload = () => {
+            loadActiveBoard();
+        };
+
+        // --- UI Navigation --- //
+        function showView(view) {
+            if (view === 'dashboard') {
+                document.getElementById('dashboardView').style.display = 'block';
+                document.getElementById('profileView').style.display = 'none';
+                document.getElementById('tabActive').classList.add('active');
+                document.getElementById('tabProfile').classList.remove('active');
+            } else if (view === 'profile') {
+                document.getElementById('dashboardView').style.display = 'none';
+                document.getElementById('profileView').style.display = 'block';
+                document.getElementById('tabProfile').style.display = 'inline-block';
+                document.getElementById('tabProfile').classList.add('active');
+                document.getElementById('tabActive').classList.remove('active');
+            }
+        }
+
+        // --- 1. LOAD ACTIVE BOARD --- //
+        async function loadActiveBoard() {
+            const listDiv = document.getElementById('activeList');
+            listDiv.innerHTML = "<i>Loading active complaints...</i>";
+            try {
+                const resp = await fetch(scriptURL + "?action=readActive");
+                const data = await resp.json();
+                listDiv.innerHTML = "";
+                
+                if(data.length === 0) {
+                    listDiv.innerHTML = '<div class="empty-msg">All caught up! No active complaints right now.</div>';
+                    return;
+                }
+
+                data.forEach(item => {
+                    const dateStr = new Date(item.date).toLocaleDateString();
+                    // Color coding class based on status
+                    let statusClass = item.status.includes("Pending") ? "Pending" : "Contacted";
+                    
+                    listDiv.innerHTML += `
+                    <div class="card ${statusClass}">
+                        <div class="card-header"><span>📅 Logged: ${dateStr}</span> <span style="text-transform:uppercase;">${item.status}</span></div>
+                        <h3 style="margin:5px 0;">${item.name}</h3>
+                        <div style="font-size:13px; color:#555;">📞 ${item.phone1} | 📍 ${item.area}</div>
+                        <div style="background:rgba(0,0,0,0.03); padding:8px; border-radius:4px; margin-top:10px; font-size:14px;">
+                            <strong>${item.brand}</strong> (Model: ${item.model})<br>
+                            Issue: ${item.problem}
+                        </div>
+                        ${item.notes ? `<div class="staff-notes"><b>Staff Notes:</b><br>${item.notes}</div>` : ''}
+                        <button class="btn-update" onclick="updateStatus('${item.row}', '${item.status}')">Update Status / Add Note</button>
+                    </div>`;
+                });
+            } catch (err) {
+                listDiv.innerHTML = "Error loading active board.";
+            }
+        }
+
+        // --- 2. SEARCH CUSTOMER PROFILE --- //
+        async function searchCustomer() {
+            const phone = document.getElementById('searchInput').value.trim();
+            const btn = document.getElementById('searchBtn');
+            if(phone.length < 5) { alert("Please enter a valid phone number."); return; }
+            
+            btn.innerText = "SEARCHING...";
+            btn.disabled = true;
+
+            try {
+                const resp = await fetch(scriptURL + "?action=search&phone=" + encodeURIComponent(phone));
+                const data = await resp.json();
+                
+                showView('profile');
+                const historyDiv = document.getElementById('historyList');
+                
+                if(data.length === 0) {
+                    document.getElementById('profName').innerText = "New Customer";
+                    document.getElementById('profContact').innerText = `Phone: ${phone} (No records found)`;
+                    document.getElementById('profPurchases').innerText = "0";
+                    document.getElementById('profComplaints').innerText = "0";
+                    historyDiv.innerHTML = "<i>No previous history. Click 'Log New Record' to add them to the system.</i>";
+                    // Pre-fill form
+                    document.getElementById('recordForm').reset();
+                    document.getElementById('fPhone1').value = phone;
+                } else {
+                    // Populate Profile Data from the most recent record
+                    const latest = data[0];
+                    document.getElementById('profName').innerText = latest.name;
+                    document.getElementById('profContact').innerText = `📞 ${latest.phone1} ${latest.phone2 ? '/ ' + latest.phone2 : ''} | ✉️ ${latest.email || 'N/A'} | 📍 ${latest.area}`;
+                    
+                    // Stats calculation
+                    document.getElementById('profPurchases').innerText = data.length;
+                    let complaintCount = data.filter(d => d.status !== "Working Fine (Just logging purchase)").length;
+                    document.getElementById('profComplaints').innerText = complaintCount;
+
+                    // Pre-fill form for convenience
+                    document.getElementById('fName').value = latest.name;
+                    document.getElementById('fPhone1').value = latest.phone1;
+                    document.getElementById('fPhone2').value = latest.phone2.replace(/'/g, ''); // strip single quotes if any
+                    document.getElementById('fEmail').value = latest.email;
+                    document.getElementById('fAddress').value = latest.address;
+                    document.getElementById('fArea').value = latest.area;
+                    document.getElementById('fPincode').value = latest.pincode;
+
+                    // Render History List
+                    historyDiv.innerHTML = "";
+                    data.forEach(item => {
+                        const isComplaint = item.status !== "Working Fine (Just logging purchase)";
+                        const titleColor = isComplaint ? "#e74c3c" : "#28a745";
+                        const titleText = isComplaint ? `Complaint: ${item.brand} ${item.model}` : `Purchase: ${item.brand} ${item.model}`;
+                        
+                        historyDiv.innerHTML += `
+                        <div class="history-item">
+                            <div style="font-size:12px; color:#888; font-weight:bold;">${new Date(item.date).toLocaleDateString()}</div>
+                            <strong style="color:${titleColor};">${titleText}</strong><br>
+                            <span style="font-size:13px; color:#444;"><b>Notes/Issue:</b> ${item.problem}</span><br>
+                            <span style="font-size:13px; color:#555;"><b>Status:</b> ${item.status}</span>
+                            ${item.notes ? `<div class="staff-notes">${item.notes}</div>` : ''}
+                        </div>`;
+                    });
+                }
+            } catch (err) {
+                alert("Error searching database.");
+            }
+            btn.innerText = "SEARCH";
+            btn.disabled = false;
+        }
+
+        // --- 3. SUBMIT NEW FORM --- //
+        const form = document.getElementById('recordForm');
+        form.addEventListener('submit', e => {
+            e.preventDefault();
+            const btn = document.getElementById('subBtn');
+            btn.innerText = "Saving to Database...";
+            btn.disabled = true;
+
+            fetch(scriptURL, { method: 'POST', body: new FormData(form) })
+            .then(response => response.json())
+            .then(data => { 
+                if (data.result === "Duplicate") {
+                    alert("⚠️ DUPLICATE DETECTED\n\nThis customer already has an active record for this exact problem submitted in the last 24 hours.");
+                } else {
+                    alert("Record Saved Successfully!");
+                    closeForm();
+                    // Refresh current view
+                    const phoneSearched = document.getElementById('searchInput').value.trim();
+                    if(document.getElementById('tabProfile').classList.contains('active') && phoneSearched) {
+                        searchCustomer(); // Reload profile
+                    } else {
+                        loadActiveBoard(); // Reload active board
+                    }
+                }
+                btn.innerText = "SAVE RECORD";
+                btn.disabled = false;
+            })
+            .catch(error => {
+                alert("Error connecting to database.");
+                btn.innerText = "SAVE RECORD";
+                btn.disabled = false;
+            });
+        });
+
+        // --- 4. UPDATE STATUS / ADD NOTES --- //
+        async function updateStatus(row, currentStatus) {
+            // Ask for new status
+            let statusOptions = "Type exactly one of the following:\n1. Pending Brand Call\n2. Brand Contacted\n3. Resolved";
+            let newStatus = prompt(statusOptions, currentStatus);
+            if (!newStatus || newStatus.trim() === "") return; // Cancelled
+
+            // Ask for optional notes
+            let newNote = prompt("Add an update note (e.g., 'Ticket #12345' or 'Tech coming tomorrow'):\nLeave blank if no new notes.");
+            if (newNote === null) return; // Cancelled completely
+            
+            try {
+                // We send this as a GET request with url parameters to match the doGet logic
+                const url = `${scriptURL}?action=updateStatus&row=${row}&status=${encodeURIComponent(newStatus.trim())}&notes=${encodeURIComponent(newNote.trim())}`;
+                await fetch(url);
+                alert("Updated successfully!");
+                loadActiveBoard(); // Refresh board to see changes instantly
+            } catch (err) {
+                alert("Failed to update status.");
+            }
+        }
+
+        // Form UX helpers
+        function openForm() { document.getElementById('formModal').style.display = 'block'; }
+        function closeForm() { document.getElementById('formModal').style.display = 'none'; }
+        
+        function toggleCustomBrand() {
+            const select = document.getElementById('brandSelect');
+            const customInput = document.getElementById('customBrand');
+            if (select.value === 'Other') {
+                customInput.style.display = 'block';
+                customInput.required = true;
+            } else {
+                customInput.style.display = 'none';
+                customInput.required = false;
+            }
+        }
+    </script>
+</body>
+</html>
