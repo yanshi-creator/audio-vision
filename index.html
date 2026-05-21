@@ -110,7 +110,7 @@
                 <div id="productSelectorDiv">
                     <label style="margin-top:0; color:#0277bd;">Did they purchase this from us before?</label>
                     <select id="pastProductSelect" onchange="autoFillProduct()">
-                        <option value="NEW">--- Unlisted / Bought Elsewhere ---</option>
+                        <option value="NEW">--- Not recorded on portal but file complaint ---</option>
                     </select>
                 </div>
 
@@ -141,16 +141,31 @@
                         <div><label style="margin-top:0;">Price (₹) *</label><input type="number" name="cPrice" id="fPrice"></div>
                         <div>
                             <label style="margin-top:0;">Payment Mode *</label>
-                            <select name="cPayment" id="fPayment">
+                            <select name="cPayment" id="fPayment" onchange="handlePaymentChange()">
                                 <option value="" disabled selected>Select...</option>
                                 <option value="Cash">Cash</option>
                                 <option value="Card">Card</option>
                                 <option value="UPI">UPI / Scan</option>
                                 <option value="Finance/EMI">Finance / EMI</option>
+                                <option value="Bajaj Finance">Bajaj Finance</option>
                                 <option value="Cheque">Cheque</option>
+                                <option value="Reference">Reference</option>
+                                <option value="Payment Due">Payment Due</option>
+                                <option value="Other">Other</option>
                             </select>
                         </div>
                     </div>
+
+                    <div id="emiDetailsDiv" style="display:none; margin-top:10px;" class="flex-row">
+                        <div><label style="margin-top:0; color:#e65100;">EMI Months</label><input type="number" id="fEmiMonths" placeholder="e.g. 6"></div>
+                        <div><label style="margin-top:0; color:#e65100;">EMI Amount (₹)</label><input type="number" id="fEmiCost" placeholder="e.g. 2500"></div>
+                    </div>
+
+                    <div id="dueDetailsDiv" style="display:none; margin-top:10px;">
+                        <label style="margin-top:0; color:#c62828;">Pending Amount Due (₹)</label>
+                        <input type="number" id="fDueAmount" placeholder="e.g. 5000">
+                    </div>
+
                     <div class="flex-row">
                         <div><label>Receipt No.</label><input type="text" name="cReceipt" id="fReceipt"></div>
                         <div><label>Challan No.</label><input type="text" name="cChallan" id="fChallan"></div>
@@ -188,10 +203,7 @@
                     <div id="statusSection">
                         <label>Current Status *</label>
                         <select name="cStatus" id="fStatus">
-                            <option value="Working Fine (Just logging purchase)">Working Fine (Just logging purchase)</option>
-                            <option value="Pending Brand Call">Pending Brand Call (Needs Action)</option>
-                            <option value="Brand Contacted">Brand Contacted (Waiting for Tech)</option>
-                        </select>
+                            </select>
                     </div>
                 </div>
 
@@ -282,7 +294,6 @@
                     document.getElementById('profComplaints').innerText = "0";
                     historyDiv.innerHTML = "<i>No previous history. Click Add Sale or Add Complaint to begin.</i>";
                     
-                    // Store phone globally so openForm can grab it
                     window.lastSearchedPhone = phone; 
                 } else {
                     const latest = data[0];
@@ -294,7 +305,6 @@
                     let complaintCount = data.filter(d => d.status !== "Working Fine (Just logging purchase)").length;
                     document.getElementById('profComplaints').innerText = complaintCount;
 
-                    // Extract unique products
                     let uniqueTracker = new Set();
                     data.forEach(item => {
                         let prodKey = item.brand + "-" + item.model;
@@ -304,10 +314,8 @@
                         }
                     });
                     
-                    // Make latest customer data available globally for quick autofill
                     window.latestCustData = latest;
 
-                    // Build the History UI
                     historyDiv.innerHTML = "";
                     data.forEach(item => {
                         const isComplaint = item.status !== "Working Fine (Just logging purchase)";
@@ -339,7 +347,6 @@
             btn.disabled = false;
         }
 
-        // Auto-fills form based on dropdown selection (Complaints Only)
         function autoFillProduct() {
             const selectVal = document.getElementById('pastProductSelect').value;
             if (selectVal === "NEW") {
@@ -372,6 +379,24 @@
             }
         }
 
+        // Toggles the extra payment fields based on what staff selects
+        function handlePaymentChange() {
+            const payVal = document.getElementById('fPayment').value;
+            const emiDiv = document.getElementById('emiDetailsDiv');
+            const dueDiv = document.getElementById('dueDetailsDiv');
+            
+            if (payVal === 'Finance/EMI' || payVal === 'Bajaj Finance') {
+                emiDiv.style.display = 'flex';
+                dueDiv.style.display = 'none';
+            } else if (payVal === 'Payment Due') {
+                emiDiv.style.display = 'none';
+                dueDiv.style.display = 'block';
+            } else {
+                emiDiv.style.display = 'none';
+                dueDiv.style.display = 'none';
+            }
+        }
+
         const form = document.getElementById('recordForm');
         form.addEventListener('submit', e => {
             e.preventDefault();
@@ -379,7 +404,24 @@
             btn.innerText = "Saving to Database...";
             btn.disabled = true;
 
-            fetch(scriptURL, { method: 'POST', body: new FormData(form) })
+            const formData = new FormData(form);
+            
+            // SMART INTERCEPT: Combine Payment Details before sending to Google Sheets
+            const basePayment = formData.get('cPayment');
+            if (basePayment === 'Finance/EMI' || basePayment === 'Bajaj Finance') {
+                const months = document.getElementById('fEmiMonths').value;
+                const cost = document.getElementById('fEmiCost').value;
+                if (months || cost) {
+                    formData.set('cPayment', `${basePayment} (${months || '?'} Months @ ₹${cost || '?'})`);
+                }
+            } else if (basePayment === 'Payment Due') {
+                const dueAmt = document.getElementById('fDueAmount').value;
+                if (dueAmt) {
+                    formData.set('cPayment', `Payment Due (Pending: ₹${dueAmt})`);
+                }
+            }
+
+            fetch(scriptURL, { method: 'POST', body: formData })
             .then(response => response.json())
             .then(data => { 
                 if (data.result === "Duplicate") {
@@ -422,10 +464,13 @@
             }
         }
 
-        // Dynamic Form Logic
         function openForm(mode) { 
             document.getElementById('formModal').style.display = 'block'; 
             document.getElementById('recordForm').reset();
+            
+            // Hide custom conditional fields on reset
+            document.getElementById('emiDetailsDiv').style.display = 'none';
+            document.getElementById('dueDetailsDiv').style.display = 'none';
             
             document.getElementById('formModeInput').value = mode;
             document.getElementById('formTitle').innerText = mode === "Sale" ? "🛒 Log New Sale" : "⚠️ Log New Complaint";
@@ -437,7 +482,6 @@
             const fStatus = document.getElementById('fStatus');
             const productDiv = document.getElementById('productSelectorDiv');
             
-            // Auto-fill basic customer info if they were searched
             if (window.latestCustData) {
                 const l = window.latestCustData;
                 document.getElementById('fName').value = l.name;
@@ -452,25 +496,22 @@
             }
 
             if (mode === "Sale") {
-                // Configure UI for Sale
                 saleDiv.style.display = 'block';
                 document.getElementById('fPrice').required = true;
                 document.getElementById('fPayment').required = true;
                 
-                productDiv.style.display = 'none'; // Don't show past products for new sale
-                
+                productDiv.style.display = 'none'; 
                 probLabel.innerText = "Internal Notes (Optional)";
                 fProblem.required = false;
                 
+                // Hide status dropdown completely, inject hidden backend value
                 statusSec.style.display = 'none';
-                fStatus.value = "Working Fine (Just logging purchase)";
+                fStatus.innerHTML = '<option value="Working Fine (Just logging purchase)">Sale Logged</option>';
                 
-                // Set Date to Today
                 let today = new Date();
                 document.getElementById('fDate').value = today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,'0') + "-" + String(today.getDate()).padStart(2,'0');
 
             } else {
-                // Configure UI for Complaint
                 saleDiv.style.display = 'none';
                 document.getElementById('fPrice').required = false;
                 document.getElementById('fPayment').required = false;
@@ -478,14 +519,17 @@
                 probLabel.innerText = "Problem / Issue *";
                 fProblem.required = true;
                 
+                // Show clean status dropdown without the "logging purchase" option
                 statusSec.style.display = 'block';
-                fStatus.value = "Pending Brand Call";
+                fStatus.innerHTML = `
+                    <option value="Pending Brand Call">Pending Brand Call (Needs Action)</option>
+                    <option value="Brand Contacted">Brand Contacted (Waiting for Tech)</option>
+                `;
 
-                // Show Smart Product Selector if they have history
                 if (currentCustomerProducts.length > 0) {
                     productDiv.style.display = 'block';
                     const productSelect = document.getElementById('pastProductSelect');
-                    productSelect.innerHTML = '<option value="NEW">--- Unlisted / Bought Elsewhere ---</option>';
+                    productSelect.innerHTML = '<option value="NEW">--- Not recorded on portal but file complaint ---</option>';
                     currentCustomerProducts.forEach((item, index) => {
                         let d = item.purchaseDate ? new Date(item.purchaseDate).toLocaleDateString() : 'Unknown Date';
                         productSelect.innerHTML += `<option value="${index}">${item.brand} ${item.model} (Bought: ${d})</option>`;
