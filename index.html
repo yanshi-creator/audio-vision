@@ -37,10 +37,13 @@
         .profile-tags { display: flex; gap: 10px; margin-top: 10px; font-size: 13px; }
         .tag { background: #e3f2fd; color: #0056b3; padding: 4px 10px; border-radius: 12px; font-weight: bold; }
         .history-list { border-left: 2px solid #ccc; margin-left: 10px; padding-left: 15px; }
-        .history-item { margin-bottom: 15px; position: relative; }
-        .history-item::before { content: ''; position: absolute; left: -21px; top: 5px; width: 10px; height: 10px; background: #ccc; border-radius: 50%; }
+        .history-item { margin-bottom: 20px; position: relative; background: #fafafa; padding: 15px; border-radius: 8px; border: 1px solid #eee; }
+        .history-item::before { content: ''; position: absolute; left: -21px; top: 15px; width: 10px; height: 10px; background: #ccc; border-radius: 50%; }
         .staff-notes { background:#e9ecef; padding:10px; border-radius:6px; margin-top:10px; font-size:13px; white-space: pre-wrap; font-family: monospace;}
         .sale-badge { background: #e8f5e9; color: #2e7d32; padding: 6px 10px; border-radius: 6px; font-size: 12px; font-weight: bold; margin-top: 5px; display: inline-block; border: 1px solid #c8e6c9;}
+        
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; color: #555; background: #f9f9f9; padding: 10px; border-radius: 6px; border: 1px dashed #ddd; margin-bottom: 10px;}
+        .full-width { grid-column: span 2; }
 
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; overflow-y: auto;}
         .modal-content { background: white; max-width: 500px; margin: 40px auto; padding: 25px; border-radius: 12px; position: relative;}
@@ -208,7 +211,7 @@
                     <div id="statusSection">
                         <label>Current Status *</label>
                         <select name="cStatus" id="fStatus" onchange="handleStatusChange()">
-                            </select>
+                        </select>
                         
                         <div id="statusOtherDiv" style="display:none; margin-top:10px;">
                             <input type="text" id="fStatusOther" placeholder="Type custom status here...">
@@ -259,18 +262,28 @@
 
                 data.forEach(item => {
                     const dateStr = new Date(item.date).toLocaleDateString();
-                    // Any status that isn't 'Working Fine' or 'Resolved' gets the red Pending class
+                    const purDateStr = item.purchaseDate ? new Date(item.purchaseDate).toLocaleDateString() : 'N/A';
                     let statusClass = (item.status.includes("Pending") || item.status.includes("Out for Delivery")) ? "Pending" : "Contacted";
                     
                     listDiv.innerHTML += `
                     <div class="card ${statusClass}">
                         <div class="card-header"><span>📅 Logged: ${dateStr}</span> <span style="text-transform:uppercase;">${item.status}</span></div>
-                        ${item.complaintNo ? `<div class="complaint-badge">🎫 ID: ${item.complaintNo}</div>` : ''}
+                        ${item.complaintNo ? `<div class="complaint-badge">🎫 Complaint ID: ${item.complaintNo}</div>` : ''}
                         <h3 style="margin:5px 0;">${item.name}</h3>
-                        <div style="font-size:13px; color:#555;">📞 ${item.phone1} | 📍 ${item.area}</div>
-                        <div style="background:rgba(0,0,0,0.03); padding:8px; border-radius:4px; margin-top:10px; font-size:14px;">
-                            <strong>${item.brand}</strong> (Model: ${item.model})<br>
-                            Issue: ${item.problem}
+                        
+                        <div class="detail-grid">
+                            <div>📞 ${item.phone1} ${item.phone2 ? '/ ' + item.phone2 : ''}</div>
+                            <div>✉️ ${item.email || 'N/A'}</div>
+                            <div class="full-width">📍 ${item.address}, ${item.area} - ${item.pincode}</div>
+                        </div>
+
+                        <div style="background:rgba(0,0,0,0.03); padding:10px; border-radius:4px; margin-top:10px; font-size:14px; border:1px solid #e0e0e0;">
+                            <strong style="font-size:16px;">${item.brand}</strong> (Model: ${item.model})<br>
+                            <span style="font-size:13px; color:#666;"><b>Purchase Date:</b> ${purDateStr}</span><br>
+                            ${item.price ? `<span style="font-size:13px; color:#666;"><b>Billing:</b> ₹${item.price} | ${item.payment} ${item.receipt ? '| Rct: '+item.receipt : ''} ${item.challan ? '| Chl: '+item.challan : ''}</span><br>` : ''}
+                            <div style="margin-top: 8px; border-top: 1px dashed #ccc; padding-top: 8px; font-weight:bold; color:#d35400;">
+                                Issue: ${item.problem}
+                            </div>
                         </div>
                         ${item.notes ? `<div class="staff-notes"><b>Staff Notes:</b><br>${item.notes}</div>` : ''}
                         <button class="btn-update" onclick="updateStatus('${item.row}', '${item.status}')">Update Status / Add Note</button>
@@ -308,9 +321,9 @@
                 } else {
                     const latest = data[0];
                     document.getElementById('profName').innerText = latest.name;
-                    document.getElementById('profContact').innerText = `📞 ${latest.phone1} ${latest.phone2 ? '/ ' + latest.phone2 : ''} | ✉️ ${latest.email || 'N/A'} | 📍 ${latest.area}`;
+                    document.getElementById('profContact').innerText = `📞 ${latest.phone1} ${latest.phone2 ? '/ ' + latest.phone2 : ''} | ✉️ ${latest.email || 'N/A'}`;
                     
-                    let saleCount = data.filter(d => d.status.includes("Working Fine") || d.status.includes("Out for Delivery")).length;
+                    let saleCount = data.filter(d => d.status.includes("Working Fine") || d.status.includes("Out for Delivery") || d.status.includes("Delivered")).length;
                     document.getElementById('profPurchases').innerText = saleCount;
                     let complaintCount = data.length - saleCount;
                     document.getElementById('profComplaints').innerText = complaintCount;
@@ -328,25 +341,34 @@
 
                     historyDiv.innerHTML = "";
                     data.forEach(item => {
-                        const isComplaint = !(item.status.includes("Working Fine") || item.status.includes("Out for Delivery"));
+                        const isComplaint = !(item.status.includes("Working Fine") || item.status.includes("Out for Delivery") || item.status.includes("Delivered"));
                         const titleColor = isComplaint ? "#e74c3c" : "#28a745";
                         const titleText = isComplaint ? `⚠️ Complaint: ${item.brand} ${item.model}` : `🛒 Purchase: ${item.brand} ${item.model}`;
                         const badgeHtml = item.complaintNo ? `<span class="complaint-badge" style="float:right;">ID: ${item.complaintNo}</span>` : '';
+                        const purDateStr = item.purchaseDate ? new Date(item.purchaseDate).toLocaleDateString() : 'N/A';
                         
                         let billingHtml = "";
-                        if(!isComplaint && item.price) {
-                            billingHtml = `<div class="sale-badge">₹${item.price} | Paid via ${item.payment} ${item.receipt ? '| Receipt: '+item.receipt : ''} ${item.challan ? '| Challan: '+item.challan : ''}</div><br>`;
+                        if(item.price || item.payment) {
+                            billingHtml = `<div class="sale-badge">₹${item.price || '0'} | Paid via ${item.payment} ${item.receipt ? '| Rct: '+item.receipt : ''} ${item.challan ? '| Chl: '+item.challan : ''}</div><br>`;
                         }
 
                         historyDiv.innerHTML += `
                         <div class="history-item">
                             ${badgeHtml}
-                            <div style="font-size:12px; color:#888; font-weight:bold;">${new Date(item.date).toLocaleDateString()}</div>
+                            <div style="font-size:12px; color:#888; font-weight:bold;">Log Date: ${new Date(item.date).toLocaleDateString()}</div>
                             <strong style="color:${titleColor}; font-size:16px;">${titleText}</strong><br>
+                            
+                            <div class="detail-grid" style="margin-top:10px;">
+                                <div class="full-width">📍 <b>Address:</b> ${item.address}, ${item.area} - ${item.pincode}</div>
+                                <div>📅 <b>Purchase Date:</b> ${purDateStr}</div>
+                                <div>📞 <b>Alt Phone:</b> ${item.phone2 || 'N/A'}</div>
+                            </div>
+                            
                             ${billingHtml}
                             ${isComplaint ? `<span style="font-size:13px; color:#444;"><b>Issue:</b> ${item.problem}</span><br>` : ''}
                             <span style="font-size:13px; color:#555;"><b>Status:</b> ${item.status}</span>
                             ${item.notes ? `<div class="staff-notes">${item.notes}</div>` : ''}
+                            <button class="btn-update" style="padding:5px 10px; font-size:11px;" onclick="updateStatus('${item.row}', '${item.status}')">Edit Status</button>
                         </div>`;
                     });
                 }
@@ -389,7 +411,6 @@
             }
         }
 
-        // Toggles the extra payment fields based on what staff selects
         function handlePaymentChange() {
             const payVal = document.getElementById('fPayment').value;
             const emiDiv = document.getElementById('emiDetailsDiv');
@@ -411,7 +432,6 @@
             }
         }
 
-        // Toggles the custom status box
         function handleStatusChange() {
             const statVal = document.getElementById('fStatus').value;
             const otherDiv = document.getElementById('statusOtherDiv');
@@ -434,7 +454,6 @@
 
             const formData = new FormData(form);
             
-            // SMART INTERCEPT: Combine Payment Details
             const basePayment = formData.get('cPayment');
             if (basePayment === 'Finance/EMI' || basePayment === 'Bajaj Finance') {
                 const months = document.getElementById('fEmiMonths').value;
@@ -454,7 +473,6 @@
                 }
             }
 
-            // SMART INTERCEPT: Custom Status
             const baseStatus = formData.get('cStatus');
             if (baseStatus === 'Other') {
                 const otherStat = document.getElementById('fStatusOther').value;
@@ -500,7 +518,13 @@
                 const url = `${scriptURL}?action=updateStatus&row=${row}&status=${encodeURIComponent(newStatus.trim())}&notes=${encodeURIComponent(newNote.trim())}`;
                 await fetch(url);
                 alert("Updated successfully!");
-                loadActiveBoard(); 
+                
+                // Refresh the current view
+                if(document.getElementById('tabProfile').classList.contains('active')) {
+                    searchCustomer();
+                } else {
+                    loadActiveBoard(); 
+                }
             } catch (err) {
                 alert("Failed to update status.");
             }
@@ -510,7 +534,6 @@
             document.getElementById('formModal').style.display = 'block'; 
             document.getElementById('recordForm').reset();
             
-            // Hide custom conditional fields on reset
             document.getElementById('emiDetailsDiv').style.display = 'none';
             document.getElementById('dueDetailsDiv').style.display = 'none';
             document.getElementById('paymentOtherDiv').style.display = 'none';
@@ -548,7 +571,6 @@
                 probLabel.innerText = "Internal Notes (Optional)";
                 fProblem.required = false;
                 
-                // Show Sale specific status options
                 statusSec.style.display = 'block';
                 fStatus.innerHTML = `
                     <option value="Working Fine (Delivered)">Sale Logged (Delivered / Handed Over)</option>
@@ -567,7 +589,6 @@
                 probLabel.innerText = "Problem / Issue *";
                 fProblem.required = true;
                 
-                // Show clean status dropdown for Complaints
                 statusSec.style.display = 'block';
                 fStatus.innerHTML = `
                     <option value="Pending Brand Call">Pending Brand Call (Needs Action)</option>
