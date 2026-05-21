@@ -166,6 +166,11 @@
                         <input type="number" id="fDueAmount" placeholder="e.g. 5000">
                     </div>
 
+                    <div id="paymentOtherDiv" style="display:none; margin-top:10px;">
+                        <label style="margin-top:0; color:#0277bd;">Specify Payment Method *</label>
+                        <input type="text" id="fPaymentOther" placeholder="e.g. Exchange, Gift Card...">
+                    </div>
+
                     <div class="flex-row">
                         <div><label>Receipt No.</label><input type="text" name="cReceipt" id="fReceipt"></div>
                         <div><label>Challan No.</label><input type="text" name="cChallan" id="fChallan"></div>
@@ -202,8 +207,12 @@
 
                     <div id="statusSection">
                         <label>Current Status *</label>
-                        <select name="cStatus" id="fStatus">
+                        <select name="cStatus" id="fStatus" onchange="handleStatusChange()">
                             </select>
+                        
+                        <div id="statusOtherDiv" style="display:none; margin-top:10px;">
+                            <input type="text" id="fStatusOther" placeholder="Type custom status here...">
+                        </div>
                     </div>
                 </div>
 
@@ -250,7 +259,8 @@
 
                 data.forEach(item => {
                     const dateStr = new Date(item.date).toLocaleDateString();
-                    let statusClass = item.status.includes("Pending") ? "Pending" : "Contacted";
+                    // Any status that isn't 'Working Fine' or 'Resolved' gets the red Pending class
+                    let statusClass = (item.status.includes("Pending") || item.status.includes("Out for Delivery")) ? "Pending" : "Contacted";
                     
                     listDiv.innerHTML += `
                     <div class="card ${statusClass}">
@@ -300,9 +310,9 @@
                     document.getElementById('profName').innerText = latest.name;
                     document.getElementById('profContact').innerText = `📞 ${latest.phone1} ${latest.phone2 ? '/ ' + latest.phone2 : ''} | ✉️ ${latest.email || 'N/A'} | 📍 ${latest.area}`;
                     
-                    let saleCount = data.filter(d => d.status === "Working Fine (Just logging purchase)").length;
+                    let saleCount = data.filter(d => d.status.includes("Working Fine") || d.status.includes("Out for Delivery")).length;
                     document.getElementById('profPurchases').innerText = saleCount;
-                    let complaintCount = data.filter(d => d.status !== "Working Fine (Just logging purchase)").length;
+                    let complaintCount = data.length - saleCount;
                     document.getElementById('profComplaints').innerText = complaintCount;
 
                     let uniqueTracker = new Set();
@@ -318,7 +328,7 @@
 
                     historyDiv.innerHTML = "";
                     data.forEach(item => {
-                        const isComplaint = item.status !== "Working Fine (Just logging purchase)";
+                        const isComplaint = !(item.status.includes("Working Fine") || item.status.includes("Out for Delivery"));
                         const titleColor = isComplaint ? "#e74c3c" : "#28a745";
                         const titleText = isComplaint ? `⚠️ Complaint: ${item.brand} ${item.model}` : `🛒 Purchase: ${item.brand} ${item.model}`;
                         const badgeHtml = item.complaintNo ? `<span class="complaint-badge" style="float:right;">ID: ${item.complaintNo}</span>` : '';
@@ -334,8 +344,8 @@
                             <div style="font-size:12px; color:#888; font-weight:bold;">${new Date(item.date).toLocaleDateString()}</div>
                             <strong style="color:${titleColor}; font-size:16px;">${titleText}</strong><br>
                             ${billingHtml}
-                            ${isComplaint ? `<span style="font-size:13px; color:#444;"><b>Issue:</b> ${item.problem}</span><br>
-                            <span style="font-size:13px; color:#555;"><b>Status:</b> ${item.status}</span>` : ''}
+                            ${isComplaint ? `<span style="font-size:13px; color:#444;"><b>Issue:</b> ${item.problem}</span><br>` : ''}
+                            <span style="font-size:13px; color:#555;"><b>Status:</b> ${item.status}</span>
                             ${item.notes ? `<div class="staff-notes">${item.notes}</div>` : ''}
                         </div>`;
                     });
@@ -384,16 +394,34 @@
             const payVal = document.getElementById('fPayment').value;
             const emiDiv = document.getElementById('emiDetailsDiv');
             const dueDiv = document.getElementById('dueDetailsDiv');
+            const otherDiv = document.getElementById('paymentOtherDiv');
             
+            emiDiv.style.display = 'none';
+            dueDiv.style.display = 'none';
+            otherDiv.style.display = 'none';
+            document.getElementById('fPaymentOther').required = false;
+
             if (payVal === 'Finance/EMI' || payVal === 'Bajaj Finance') {
                 emiDiv.style.display = 'flex';
-                dueDiv.style.display = 'none';
             } else if (payVal === 'Payment Due') {
-                emiDiv.style.display = 'none';
                 dueDiv.style.display = 'block';
+            } else if (payVal === 'Other') {
+                otherDiv.style.display = 'block';
+                document.getElementById('fPaymentOther').required = true;
+            }
+        }
+
+        // Toggles the custom status box
+        function handleStatusChange() {
+            const statVal = document.getElementById('fStatus').value;
+            const otherDiv = document.getElementById('statusOtherDiv');
+            
+            if (statVal === 'Other') {
+                otherDiv.style.display = 'block';
+                document.getElementById('fStatusOther').required = true;
             } else {
-                emiDiv.style.display = 'none';
-                dueDiv.style.display = 'none';
+                otherDiv.style.display = 'none';
+                document.getElementById('fStatusOther').required = false;
             }
         }
 
@@ -406,7 +434,7 @@
 
             const formData = new FormData(form);
             
-            // SMART INTERCEPT: Combine Payment Details before sending to Google Sheets
+            // SMART INTERCEPT: Combine Payment Details
             const basePayment = formData.get('cPayment');
             if (basePayment === 'Finance/EMI' || basePayment === 'Bajaj Finance') {
                 const months = document.getElementById('fEmiMonths').value;
@@ -418,6 +446,20 @@
                 const dueAmt = document.getElementById('fDueAmount').value;
                 if (dueAmt) {
                     formData.set('cPayment', `Payment Due (Pending: ₹${dueAmt})`);
+                }
+            } else if (basePayment === 'Other') {
+                const otherPay = document.getElementById('fPaymentOther').value;
+                if (otherPay) {
+                    formData.set('cPayment', otherPay);
+                }
+            }
+
+            // SMART INTERCEPT: Custom Status
+            const baseStatus = formData.get('cStatus');
+            if (baseStatus === 'Other') {
+                const otherStat = document.getElementById('fStatusOther').value;
+                if (otherStat) {
+                    formData.set('cStatus', otherStat);
                 }
             }
 
@@ -447,7 +489,7 @@
         });
 
         async function updateStatus(row, currentStatus) {
-            let statusOptions = "Type exactly one of the following:\n1. Pending Brand Call\n2. Brand Contacted\n3. Resolved";
+            let statusOptions = "Type exactly one of the following:\n1. Pending Brand Call\n2. Brand Contacted\n3. Resolved\n4. Or type your own custom status";
             let newStatus = prompt(statusOptions, currentStatus);
             if (!newStatus || newStatus.trim() === "") return;
 
@@ -471,6 +513,8 @@
             // Hide custom conditional fields on reset
             document.getElementById('emiDetailsDiv').style.display = 'none';
             document.getElementById('dueDetailsDiv').style.display = 'none';
+            document.getElementById('paymentOtherDiv').style.display = 'none';
+            document.getElementById('statusOtherDiv').style.display = 'none';
             
             document.getElementById('formModeInput').value = mode;
             document.getElementById('formTitle').innerText = mode === "Sale" ? "🛒 Log New Sale" : "⚠️ Log New Complaint";
@@ -504,9 +548,13 @@
                 probLabel.innerText = "Internal Notes (Optional)";
                 fProblem.required = false;
                 
-                // Hide status dropdown completely, inject hidden backend value
-                statusSec.style.display = 'none';
-                fStatus.innerHTML = '<option value="Working Fine (Just logging purchase)">Sale Logged</option>';
+                // Show Sale specific status options
+                statusSec.style.display = 'block';
+                fStatus.innerHTML = `
+                    <option value="Working Fine (Delivered)">Sale Logged (Delivered / Handed Over)</option>
+                    <option value="Purchase Registered - Out for Delivery">Purchase Registered - Out for Delivery</option>
+                    <option value="Other">Other (Specify)</option>
+                `;
                 
                 let today = new Date();
                 document.getElementById('fDate').value = today.getFullYear() + "-" + String(today.getMonth()+1).padStart(2,'0') + "-" + String(today.getDate()).padStart(2,'0');
@@ -519,11 +567,12 @@
                 probLabel.innerText = "Problem / Issue *";
                 fProblem.required = true;
                 
-                // Show clean status dropdown without the "logging purchase" option
+                // Show clean status dropdown for Complaints
                 statusSec.style.display = 'block';
                 fStatus.innerHTML = `
                     <option value="Pending Brand Call">Pending Brand Call (Needs Action)</option>
                     <option value="Brand Contacted">Brand Contacted (Waiting for Tech)</option>
+                    <option value="Other">Other (Specify)</option>
                 `;
 
                 if (currentCustomerProducts.length > 0) {
