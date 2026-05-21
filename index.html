@@ -6,8 +6,6 @@
     <title>Audio Vision | Retail Service Tracker</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 0; margin: 0; color: #333; }
-        
-        /* HEADER & SEARCH */
         .header { background: #1a1a1a; color: white; padding: 15px 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100;}
         .logo { font-size: 22px; font-weight: bold; letter-spacing: 1px; color: #f1c40f; margin-bottom: 10px;}
         .search-container { display: flex; gap: 8px; flex: 1; max-width: 400px; min-width: 280px;}
@@ -16,12 +14,9 @@
         .search-container button:hover { background: #d4ac0d; }
         
         .container { max-width: 800px; margin: 20px auto; padding: 0 15px; }
-
-        /* TABS */
         .tab-btn { background: #ddd; border: none; padding: 10px 20px; font-weight: bold; border-radius: 6px 6px 0 0; cursor: pointer; margin-right: 5px; color: #555;}
         .tab-btn.active { background: #fff; color: #000; border-bottom: 3px solid #f1c40f; }
 
-        /* DASHBOARD SECTION */
         .dashboard-area { background: white; padding: 20px; border-radius: 0 8px 8px 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         .card { border: 1px solid #eee; border-left: 5px solid #e74c3c; border-radius: 6px; padding: 15px; margin-bottom: 15px; background: #fffaf9;}
         .card.Pending { border-left-color: #e74c3c; background: #fffaf9;}
@@ -29,8 +24,8 @@
         .card.Resolved { border-left-color: #27ae60; background: #f9fff9;}
         .card-header { display: flex; justify-content: space-between; font-size: 12px; color: #888; font-weight: bold; margin-bottom: 8px;}
         .btn-update { margin-top:10px; background: #34495e; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: bold;}
+        .complaint-badge { background: #ffebee; color: #c62828; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; border: 1px solid #ffcdd2; display: inline-block; margin-bottom: 5px;}
         
-        /* CUSTOMER PROFILE SECTION */
         .profile-area { display: none; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
         .profile-header { background: #f8f9fa; padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #eee;}
         .profile-name { font-size: 24px; font-weight: bold; margin: 0 0 5px 0; color: #1a1a1a;}
@@ -41,7 +36,6 @@
         .history-item::before { content: ''; position: absolute; left: -21px; top: 5px; width: 10px; height: 10px; background: #ccc; border-radius: 50%; }
         .staff-notes { background:#e9ecef; padding:10px; border-radius:6px; margin-top:10px; font-size:13px; white-space: pre-wrap; font-family: monospace;}
 
-        /* MODAL FORM */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; overflow-y: auto;}
         .modal-content { background: white; max-width: 500px; margin: 40px auto; padding: 25px; border-radius: 12px; position: relative;}
         .close-btn { position: absolute; right: 20px; top: 20px; font-size: 24px; cursor: pointer; color: #888; }
@@ -53,6 +47,8 @@
         .submit-btn { background: #1a1a1a; color: #f1c40f; padding: 15px; border: none; width: 100%; font-size: 16px; font-weight: bold; border-radius: 6px; margin-top: 25px; cursor: pointer; transition: 0.3s;}
         .submit-btn:disabled { background: #666; color: #ccc; cursor: not-allowed; }
         .empty-msg { text-align: center; color: #888; font-style: italic; padding: 30px; background: #f9f9f9; border-radius: 8px; border: 1px dashed #ccc; }
+        
+        #productSelectorDiv { background: #e8f4f8; padding: 15px; border-radius: 8px; border: 1px solid #b3e5fc; margin-bottom: 15px; display: none; }
     </style>
 </head>
 <body>
@@ -72,7 +68,7 @@
         </div>
 
         <div id="dashboardView" class="dashboard-area">
-            <h3 style="margin-top:0;">Action Required Today <button onclick="loadActiveBoard()" style="float:right; cursor:pointer;">🔄 Refresh</button></h3>
+            <h3 style="margin-top:0;">Action Required Today <button onclick="loadActiveBoard()" style="float:right; cursor:pointer; padding:5px 10px; border-radius:4px; border:1px solid #ccc;">🔄 Refresh</button></h3>
             <div id="activeList">
                 <div class="empty-msg">Loading active jobs...</div>
             </div>
@@ -102,6 +98,14 @@
             <h2 style="margin-top:0; color:#1a1a1a;">Log New Record</h2>
             
             <form id="recordForm">
+                
+                <div id="productSelectorDiv">
+                    <label style="margin-top:0; color:#0277bd;">Did they purchase this from us before?</label>
+                    <select id="pastProductSelect" onchange="autoFillProduct()">
+                        <option value="NEW">--- Brand New Purchase / Unlisted ---</option>
+                        </select>
+                </div>
+
                 <label>Customer Name *</label>
                 <input type="text" name="cName" id="fName" required>
                 
@@ -124,7 +128,7 @@
                 <div style="border-top: 2px dashed #ccc; margin: 20px 0;"></div>
 
                 <div class="flex-row">
-                    <div><label>Purchase Date</label><input type="date" name="pDate"></div>
+                    <div><label>Purchase Date</label><input type="date" name="pDate" id="fDate"></div>
                     <div>
                         <label>Brand *</label>
                         <select name="cBrand" id="brandSelect" onchange="toggleCustomBrand()" required>
@@ -145,7 +149,7 @@
                 <input type="text" name="customBrand" id="customBrand" placeholder="Type Brand Name..." style="display:none; margin-top:5px;">
 
                 <label>Model Number *</label>
-                <input type="text" name="cModel" required>
+                <input type="text" name="cModel" id="fModel" required>
 
                 <label>Problem / Notes *</label>
                 <textarea name="cProblem" rows="3" placeholder="What is the issue?" required></textarea>
@@ -166,11 +170,11 @@
         // ⚠️ YOUR SPECIFIC GOOGLE APPS SCRIPT URL ⚠️
         const scriptURL = 'https://script.google.com/macros/s/AKfycbwxjAELcQkLo3oeLGc86t20OE5Q7n85ifu7htNI8NLovU78AcH6EjGp4331vdWswXqw/exec';
 
-        window.onload = () => {
-            loadActiveBoard();
-        };
+        // Store customer's past products for the smart dropdown
+        let currentCustomerProducts = [];
 
-        // --- UI Navigation --- //
+        window.onload = () => { loadActiveBoard(); };
+
         function showView(view) {
             if (view === 'dashboard') {
                 document.getElementById('dashboardView').style.display = 'block';
@@ -186,7 +190,6 @@
             }
         }
 
-        // --- 1. LOAD ACTIVE BOARD --- //
         async function loadActiveBoard() {
             const listDiv = document.getElementById('activeList');
             listDiv.innerHTML = "<i>Loading active complaints...</i>";
@@ -202,12 +205,12 @@
 
                 data.forEach(item => {
                     const dateStr = new Date(item.date).toLocaleDateString();
-                    // Color coding class based on status
                     let statusClass = item.status.includes("Pending") ? "Pending" : "Contacted";
                     
                     listDiv.innerHTML += `
                     <div class="card ${statusClass}">
                         <div class="card-header"><span>📅 Logged: ${dateStr}</span> <span style="text-transform:uppercase;">${item.status}</span></div>
+                        ${item.complaintNo ? `<div class="complaint-badge">🎫 ID: ${item.complaintNo}</div>` : ''}
                         <h3 style="margin:5px 0;">${item.name}</h3>
                         <div style="font-size:13px; color:#555;">📞 ${item.phone1} | 📍 ${item.area}</div>
                         <div style="background:rgba(0,0,0,0.03); padding:8px; border-radius:4px; margin-top:10px; font-size:14px;">
@@ -223,7 +226,6 @@
             }
         }
 
-        // --- 2. SEARCH CUSTOMER PROFILE --- //
         async function searchCustomer() {
             const phone = document.getElementById('searchInput').value.trim();
             const btn = document.getElementById('searchBtn');
@@ -231,6 +233,7 @@
             
             btn.innerText = "SEARCHING...";
             btn.disabled = true;
+            currentCustomerProducts = []; // Reset past products array
 
             try {
                 const resp = await fetch(scriptURL + "?action=search&phone=" + encodeURIComponent(phone));
@@ -245,38 +248,48 @@
                     document.getElementById('profPurchases').innerText = "0";
                     document.getElementById('profComplaints').innerText = "0";
                     historyDiv.innerHTML = "<i>No previous history. Click 'Log New Record' to add them to the system.</i>";
-                    // Pre-fill form
+                    
                     document.getElementById('recordForm').reset();
                     document.getElementById('fPhone1').value = phone;
+                    document.getElementById('productSelectorDiv').style.display = 'none';
                 } else {
-                    // Populate Profile Data from the most recent record
                     const latest = data[0];
                     document.getElementById('profName').innerText = latest.name;
                     document.getElementById('profContact').innerText = `📞 ${latest.phone1} ${latest.phone2 ? '/ ' + latest.phone2 : ''} | ✉️ ${latest.email || 'N/A'} | 📍 ${latest.area}`;
                     
-                    // Stats calculation
                     document.getElementById('profPurchases').innerText = data.length;
                     let complaintCount = data.filter(d => d.status !== "Working Fine (Just logging purchase)").length;
                     document.getElementById('profComplaints').innerText = complaintCount;
 
-                    // Pre-fill form for convenience
                     document.getElementById('fName').value = latest.name;
                     document.getElementById('fPhone1').value = latest.phone1;
-                    document.getElementById('fPhone2').value = latest.phone2.replace(/'/g, ''); // strip single quotes if any
+                    document.getElementById('fPhone2').value = latest.phone2.replace(/'/g, ''); 
                     document.getElementById('fEmail').value = latest.email;
                     document.getElementById('fAddress').value = latest.address;
                     document.getElementById('fArea').value = latest.area;
                     document.getElementById('fPincode').value = latest.pincode;
 
-                    // Render History List
+                    // Extract unique products for the dropdown
+                    let uniqueTracker = new Set();
+                    data.forEach(item => {
+                        let prodKey = item.brand + "-" + item.model;
+                        if (!uniqueTracker.has(prodKey) && item.brand && item.model) {
+                            uniqueTracker.add(prodKey);
+                            currentCustomerProducts.push(item);
+                        }
+                    });
+
+                    // Build the History UI
                     historyDiv.innerHTML = "";
                     data.forEach(item => {
                         const isComplaint = item.status !== "Working Fine (Just logging purchase)";
                         const titleColor = isComplaint ? "#e74c3c" : "#28a745";
                         const titleText = isComplaint ? `Complaint: ${item.brand} ${item.model}` : `Purchase: ${item.brand} ${item.model}`;
+                        const badgeHtml = item.complaintNo ? `<span class="complaint-badge" style="float:right;">ID: ${item.complaintNo}</span>` : '';
                         
                         historyDiv.innerHTML += `
                         <div class="history-item">
+                            ${badgeHtml}
                             <div style="font-size:12px; color:#888; font-weight:bold;">${new Date(item.date).toLocaleDateString()}</div>
                             <strong style="color:${titleColor};">${titleText}</strong><br>
                             <span style="font-size:13px; color:#444;"><b>Notes/Issue:</b> ${item.problem}</span><br>
@@ -292,7 +305,44 @@
             btn.disabled = false;
         }
 
-        // --- 3. SUBMIT NEW FORM --- //
+        // Auto-fills form based on dropdown selection
+        function autoFillProduct() {
+            const selectVal = document.getElementById('pastProductSelect').value;
+            if (selectVal === "NEW") {
+                document.getElementById('brandSelect').value = "";
+                document.getElementById('fModel').value = "";
+                document.getElementById('fDate').value = "";
+                toggleCustomBrand();
+            } else {
+                const item = currentCustomerProducts[selectVal];
+                
+                // Attempt to select the brand in dropdown. If not found, use "Other"
+                const brandDrop = document.getElementById('brandSelect');
+                let foundBrand = false;
+                for(let i=0; i<brandDrop.options.length; i++) {
+                    if(brandDrop.options[i].value.toUpperCase() === item.brand.toUpperCase()) {
+                        brandDrop.selectedIndex = i;
+                        foundBrand = true;
+                        break;
+                    }
+                }
+                if(!foundBrand) {
+                    brandDrop.value = "Other";
+                    document.getElementById('customBrand').value = item.brand;
+                }
+                toggleCustomBrand();
+
+                document.getElementById('fModel').value = item.model;
+                
+                // Format date for the HTML input field (YYYY-MM-DD)
+                if(item.purchaseDate) {
+                    let d = new Date(item.purchaseDate);
+                    let formattedDate = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,'0') + "-" + String(d.getDate()).padStart(2,'0');
+                    document.getElementById('fDate').value = formattedDate;
+                }
+            }
+        }
+
         const form = document.getElementById('recordForm');
         form.addEventListener('submit', e => {
             e.preventDefault();
@@ -308,12 +358,11 @@
                 } else {
                     alert("Record Saved Successfully!");
                     closeForm();
-                    // Refresh current view
                     const phoneSearched = document.getElementById('searchInput').value.trim();
                     if(document.getElementById('tabProfile').classList.contains('active') && phoneSearched) {
-                        searchCustomer(); // Reload profile
+                        searchCustomer(); 
                     } else {
-                        loadActiveBoard(); // Reload active board
+                        loadActiveBoard(); 
                     }
                 }
                 btn.innerText = "SAVE RECORD";
@@ -326,30 +375,46 @@
             });
         });
 
-        // --- 4. UPDATE STATUS / ADD NOTES --- //
         async function updateStatus(row, currentStatus) {
-            // Ask for new status
             let statusOptions = "Type exactly one of the following:\n1. Pending Brand Call\n2. Brand Contacted\n3. Resolved";
             let newStatus = prompt(statusOptions, currentStatus);
-            if (!newStatus || newStatus.trim() === "") return; // Cancelled
+            if (!newStatus || newStatus.trim() === "") return;
 
-            // Ask for optional notes
             let newNote = prompt("Add an update note (e.g., 'Ticket #12345' or 'Tech coming tomorrow'):\nLeave blank if no new notes.");
-            if (newNote === null) return; // Cancelled completely
+            if (newNote === null) return; 
             
             try {
-                // We send this as a GET request with url parameters to match the doGet logic
                 const url = `${scriptURL}?action=updateStatus&row=${row}&status=${encodeURIComponent(newStatus.trim())}&notes=${encodeURIComponent(newNote.trim())}`;
                 await fetch(url);
                 alert("Updated successfully!");
-                loadActiveBoard(); // Refresh board to see changes instantly
+                loadActiveBoard(); 
             } catch (err) {
                 alert("Failed to update status.");
             }
         }
 
-        // Form UX helpers
-        function openForm() { document.getElementById('formModal').style.display = 'block'; }
+        function openForm() { 
+            document.getElementById('formModal').style.display = 'block'; 
+            
+            // Populate the Smart Dropdown if they have past products
+            const productDiv = document.getElementById('productSelectorDiv');
+            const productSelect = document.getElementById('pastProductSelect');
+            
+            if (currentCustomerProducts.length > 0) {
+                productDiv.style.display = 'block';
+                productSelect.innerHTML = '<option value="NEW">--- Brand New Purchase / Unlisted ---</option>';
+                currentCustomerProducts.forEach((item, index) => {
+                    let d = item.purchaseDate ? new Date(item.purchaseDate).toLocaleDateString() : 'Unknown Date';
+                    productSelect.innerHTML += `<option value="${index}">${item.brand} ${item.model} (Bought: ${d})</option>`;
+                });
+                // Reset form fields back to normal in case they were previously auto-filled
+                productSelect.value = "NEW";
+                autoFillProduct();
+            } else {
+                productDiv.style.display = 'none';
+            }
+        }
+        
         function closeForm() { document.getElementById('formModal').style.display = 'none'; }
         
         function toggleCustomBrand() {
