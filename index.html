@@ -72,6 +72,7 @@
     <div class="container">
         <div class="tab-container">
             <button class="tab-btn active" id="tabActive" onclick="showView('dashboard')">Active Complaints</button>
+            <button class="tab-btn" id="tabSales" onclick="showView('sales')">Recent Sales</button>
             <button class="tab-btn" id="tabProfile" style="display:none;" onclick="showView('profile')">Customer Profile</button>
             
             <button class="tab-btn btn-sale" onclick="openForm('Sale')">🛒 Add Sale</button>
@@ -81,7 +82,14 @@
         <div id="dashboardView" class="dashboard-area">
             <h3 style="margin-top:0;">Action Required Today <button onclick="loadActiveBoard()" style="float:right; cursor:pointer; padding:5px 10px; border-radius:4px; border:1px solid #ccc;">🔄 Refresh</button></h3>
             <div id="activeList">
-                <div class="empty-msg">Loading active jobs...</div>
+                <div class="empty-msg">Loading active complaints...</div>
+            </div>
+        </div>
+
+        <div id="salesView" class="dashboard-area" style="display:none;">
+            <h3 style="margin-top:0;">Recent Sales & Deliveries <button onclick="loadActiveBoard()" style="float:right; cursor:pointer; padding:5px 10px; border-radius:4px; border:1px solid #ccc;">🔄 Refresh</button></h3>
+            <div id="salesList">
+                <div class="empty-msg">Loading recent sales...</div>
             </div>
         </div>
 
@@ -233,64 +241,115 @@
         window.onload = () => { loadActiveBoard(); };
 
         function showView(view) {
+            // Hide all views and tabs
+            document.getElementById('dashboardView').style.display = 'none';
+            document.getElementById('salesView').style.display = 'none';
+            document.getElementById('profileView').style.display = 'none';
+
+            document.getElementById('tabActive').classList.remove('active');
+            document.getElementById('tabSales').classList.remove('active');
+            document.getElementById('tabProfile').classList.remove('active');
+
+            // Show selected view
             if (view === 'dashboard') {
                 document.getElementById('dashboardView').style.display = 'block';
-                document.getElementById('profileView').style.display = 'none';
                 document.getElementById('tabActive').classList.add('active');
-                document.getElementById('tabProfile').classList.remove('active');
+            } else if (view === 'sales') {
+                document.getElementById('salesView').style.display = 'block';
+                document.getElementById('tabSales').classList.add('active');
             } else if (view === 'profile') {
-                document.getElementById('dashboardView').style.display = 'none';
                 document.getElementById('profileView').style.display = 'block';
                 document.getElementById('tabProfile').style.display = 'inline-block';
                 document.getElementById('tabProfile').classList.add('active');
-                document.getElementById('tabActive').classList.remove('active');
             }
         }
 
         async function loadActiveBoard() {
             const listDiv = document.getElementById('activeList');
+            const salesDiv = document.getElementById('salesList');
+
             listDiv.innerHTML = "<i>Loading active complaints...</i>";
+            salesDiv.innerHTML = "<i>Loading recent sales...</i>";
+
             try {
                 const resp = await fetch(scriptURL + "?action=readActive");
                 const data = await resp.json();
-                listDiv.innerHTML = "";
                 
-                if(data.length === 0) {
-                    listDiv.innerHTML = '<div class="empty-msg">All caught up! No active complaints right now.</div>';
-                    return;
-                }
+                listDiv.innerHTML = "";
+                salesDiv.innerHTML = "";
+                
+                let activeCount = 0;
+                let salesCount = 0;
 
                 data.forEach(item => {
                     const dateStr = new Date(item.date).toLocaleDateString();
                     const purDateStr = item.purchaseDate ? new Date(item.purchaseDate).toLocaleDateString() : 'N/A';
-                    let statusClass = (item.status.includes("Pending") || item.status.includes("Out for Delivery")) ? "Pending" : "Contacted";
                     
-                    listDiv.innerHTML += `
-                    <div class="card ${statusClass}">
-                        <div class="card-header"><span>📅 Logged: ${dateStr}</span> <span style="text-transform:uppercase;">${item.status}</span></div>
-                        ${item.complaintNo ? `<div class="complaint-badge">🎫 Complaint ID: ${item.complaintNo}</div>` : ''}
-                        <h3 style="margin:5px 0;">${item.name}</h3>
+                    // SMART FILTER: If it has a Complaint ID, it goes to Complaints. Otherwise, Sales!
+                    if (item.complaintNo) {
+                        activeCount++;
+                        let statusClass = (item.status.includes("Pending") || item.status.includes("Out for Delivery")) ? "Pending" : "Contacted";
                         
-                        <div class="detail-grid">
-                            <div>📞 ${item.phone1} ${item.phone2 ? '/ ' + item.phone2 : ''}</div>
-                            <div>✉️ ${item.email || 'N/A'}</div>
-                            <div class="full-width">📍 ${item.address}, ${item.area} - ${item.pincode}</div>
-                        </div>
-
-                        <div style="background:rgba(0,0,0,0.03); padding:10px; border-radius:4px; margin-top:10px; font-size:14px; border:1px solid #e0e0e0;">
-                            <strong style="font-size:16px;">${item.brand}</strong> (Model: ${item.model})<br>
-                            <span style="font-size:13px; color:#666;"><b>Purchase Date:</b> ${purDateStr}</span><br>
-                            ${item.price ? `<span style="font-size:13px; color:#666;"><b>Billing:</b> ₹${item.price} | ${item.payment} ${item.receipt ? '| Rct: '+item.receipt : ''} ${item.challan ? '| Chl: '+item.challan : ''}</span><br>` : ''}
-                            <div style="margin-top: 8px; border-top: 1px dashed #ccc; padding-top: 8px; font-weight:bold; color:#d35400;">
-                                Issue: ${item.problem}
+                        listDiv.innerHTML += `
+                        <div class="card ${statusClass}">
+                            <div class="card-header"><span>📅 Logged: ${dateStr}</span> <span style="text-transform:uppercase;">${item.status}</span></div>
+                            <div class="complaint-badge">🎫 Complaint ID: ${item.complaintNo}</div>
+                            <h3 style="margin:5px 0;">${item.name}</h3>
+                            
+                            <div class="detail-grid">
+                                <div>📞 ${item.phone1} ${item.phone2 ? '/ ' + item.phone2 : ''}</div>
+                                <div>✉️ ${item.email || 'N/A'}</div>
+                                <div class="full-width">📍 ${item.address}, ${item.area} - ${item.pincode}</div>
                             </div>
-                        </div>
-                        ${item.notes ? `<div class="staff-notes"><b>Staff Notes:</b><br>${item.notes}</div>` : ''}
-                        <button class="btn-update" onclick="updateStatus('${item.row}', '${item.status}')">Update Status / Add Note</button>
-                    </div>`;
+
+                            <div style="background:rgba(0,0,0,0.03); padding:10px; border-radius:4px; margin-top:10px; font-size:14px; border:1px solid #e0e0e0;">
+                                <strong style="font-size:16px;">${item.brand}</strong> (Model: ${item.model})<br>
+                                <span style="font-size:13px; color:#666;"><b>Purchase Date:</b> ${purDateStr}</span><br>
+                                <div style="margin-top: 8px; border-top: 1px dashed #ccc; padding-top: 8px; font-weight:bold; color:#d35400;">
+                                    Issue: ${item.problem}
+                                </div>
+                            </div>
+                            ${item.notes ? `<div class="staff-notes"><b>Staff Notes:</b><br>${item.notes}</div>` : ''}
+                            <button class="btn-update" onclick="updateStatus('${item.row}', '${item.status}')">Update Status / Add Note</button>
+                        </div>`;
+                        
+                    } else {
+                        salesCount++;
+                        // Only show the 50 most recent sales so the page stays fast!
+                        if (salesCount > 50) return; 
+                        
+                        // If it's out for delivery, highlight in orange. Otherwise green.
+                        let statusClass = item.status.includes("Out for Delivery") ? "Contacted" : "Resolved";
+                        
+                        salesDiv.innerHTML += `
+                        <div class="card ${statusClass}">
+                            <div class="card-header"><span>📅 Sale Logged: ${dateStr}</span> <span style="text-transform:uppercase;">${item.status}</span></div>
+                            <h3 style="margin:5px 0;">${item.name}</h3>
+                            
+                            <div class="detail-grid">
+                                <div>📞 ${item.phone1} ${item.phone2 ? '/ ' + item.phone2 : ''}</div>
+                                <div>✉️ ${item.email || 'N/A'}</div>
+                                <div class="full-width">📍 ${item.address}, ${item.area} - ${item.pincode}</div>
+                            </div>
+
+                            <div style="background:rgba(0,0,0,0.03); padding:10px; border-radius:4px; margin-top:10px; font-size:14px; border:1px solid #e0e0e0;">
+                                <strong style="font-size:16px;">${item.brand}</strong> (Model: ${item.model})<br>
+                                <span style="font-size:13px; color:#666;"><b>Purchase Date:</b> ${purDateStr}</span><br>
+                                ${item.price ? `<span style="font-size:13px; color:#666;"><b>Billing:</b> ₹${item.price} | ${item.payment} ${item.receipt ? '| Rct: '+item.receipt : ''} ${item.challan ? '| Chl: '+item.challan : ''}</span><br>` : ''}
+                                ${item.problem ? `<div style="margin-top: 5px; font-size: 13px; color: #444;"><b>Internal Note:</b> ${item.problem}</div>` : ''}
+                            </div>
+                            ${item.notes ? `<div class="staff-notes"><b>Staff Notes:</b><br>${item.notes}</div>` : ''}
+                            <button class="btn-update" onclick="updateStatus('${item.row}', '${item.status}')">Update Status / Add Note</button>
+                        </div>`;
+                    }
                 });
+
+                if(activeCount === 0) listDiv.innerHTML = '<div class="empty-msg">All caught up! No active complaints right now.</div>';
+                if(salesCount === 0) salesDiv.innerHTML = '<div class="empty-msg">No recent sales found.</div>';
+
             } catch (err) {
                 listDiv.innerHTML = "Error loading active board.";
+                salesDiv.innerHTML = "Error loading sales board.";
             }
         }
 
@@ -323,7 +382,7 @@
                     document.getElementById('profName').innerText = latest.name;
                     document.getElementById('profContact').innerText = `📞 ${latest.phone1} ${latest.phone2 ? '/ ' + latest.phone2 : ''} | ✉️ ${latest.email || 'N/A'}`;
                     
-                    let saleCount = data.filter(d => d.status.includes("Working Fine") || d.status.includes("Out for Delivery") || d.status.includes("Delivered")).length;
+                    let saleCount = data.filter(d => !d.complaintNo).length;
                     document.getElementById('profPurchases').innerText = saleCount;
                     let complaintCount = data.length - saleCount;
                     document.getElementById('profComplaints').innerText = complaintCount;
@@ -341,7 +400,7 @@
 
                     historyDiv.innerHTML = "";
                     data.forEach(item => {
-                        const isComplaint = !(item.status.includes("Working Fine") || item.status.includes("Out for Delivery") || item.status.includes("Delivered"));
+                        const isComplaint = item.complaintNo !== "";
                         const titleColor = isComplaint ? "#e74c3c" : "#28a745";
                         const titleText = isComplaint ? `⚠️ Complaint: ${item.brand} ${item.model}` : `🛒 Purchase: ${item.brand} ${item.model}`;
                         const badgeHtml = item.complaintNo ? `<span class="complaint-badge" style="float:right;">ID: ${item.complaintNo}</span>` : '';
