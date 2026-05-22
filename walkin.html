@@ -3,81 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Walk-In Lead Tracker</title>
+    <title>Walk-In Lead Tracker | Locked</title>
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #eef2f3; padding: 0; margin: 0; color: #333; }
+        
+        /* LOGIN SCREEN STYLES */
+        #loginScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #004d40; z-index: 9999; display: flex; justify-content: center; align-items: center; }
+        .login-box { background: white; padding: 35px 30px; border-radius: 12px; text-align: center; width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
+        .login-box h2 { margin-top: 0; color: #004d40; letter-spacing: 1px;}
+        .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #eee; border-radius: 6px; box-sizing: border-box; font-size: 14px; outline: none; transition: 0.3s;}
+        .login-box input:focus { border-color: #00bfa5; }
+        .login-box button { background: #00bfa5; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 15px; transition: 0.2s;}
+        .login-box button:hover { background: #009688; }
+        #loginError { color: #d32f2f; font-size: 13px; font-weight: bold; display: none; margin-top: 15px; background: #ffebee; padding: 8px; border-radius: 4px;}
+
+        /* MAIN APP STYLES */
         .header { background: #004d40; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100;}
         .logo { font-size: 22px; font-weight: bold; letter-spacing: 1px; color: #a7ffeb;}
-        
         .container { max-width: 800px; margin: 20px auto; padding: 0 15px; }
-        
         .form-area { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 25px; border-top: 5px solid #00bfa5;}
         .form-area h3 { margin-top: 0; color: #004d40; }
-        
         .flex-row { display: flex; gap: 10px; }
         .flex-row > div { flex: 1; }
         label { font-weight: bold; display: block; margin-top: 12px; font-size: 13px; color: #555;}
-        input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        input[type="text"], input[type="tel"], input[type="date"], textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
         .submit-btn { background: #00bfa5; color: white; padding: 12px; border: none; width: 100%; font-size: 16px; font-weight: bold; border-radius: 6px; margin-top: 20px; cursor: pointer;}
         .submit-btn:hover { background: #009688; }
-
         .lead-card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 15px; border-left: 5px solid #00bfa5; position: relative;}
         .lead-card.alarm { border-left-color: #d32f2f; background: #fff5f5; }
-        
         .card-header { display: flex; justify-content: space-between; font-size: 12px; color: #888; font-weight: bold; border-bottom: 1px dashed #eee; padding-bottom: 8px; margin-bottom: 8px;}
         .days-badge { background: #e0f2f1; color: #00695c; padding: 3px 8px; border-radius: 12px; font-size: 11px;}
         .alarm-badge { background: #d32f2f; color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; animation: blinker 2s linear infinite;}
-        
         @keyframes blinker { 50% { opacity: 0.5; } }
-
         .btn-close { background: #455a64; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; margin-top: 10px;}
-        
         .empty-msg { text-align: center; color: #888; font-style: italic; padding: 20px; }
     </style>
 </head>
 <body>
 
-    <div class="header">
-        <div class="logo">WALK-IN TRACKER</div>
-        <button onclick="location.href='index.html'" style="background:white; color:#004d40; border:none; padding:8px 15px; border-radius:4px; font-weight:bold; cursor:pointer;">⬅ Back to CRM</button>
+    <div id="loginScreen">
+        <div class="login-box">
+            <h2>AUDIO VISION</h2>
+            <p style="font-size:13px; color:#666; margin-top:-10px; margin-bottom:20px;">Staff Portal Authentication</p>
+            <input type="text" id="loginUser" placeholder="Username">
+            <input type="password" id="loginPass" placeholder="Password">
+            <button onclick="checkLogin()">SECURE LOGIN</button>
+            <div id="loginError">⚠️ Incorrect Username or Password</div>
+        </div>
     </div>
 
-    <div class="container">
-        
-        <div class="form-area">
-            <h3>Log New Walk-In Customer</h3>
-            <form id="walkinForm">
-                <div class="flex-row">
-                    <div><label>Customer Name *</label><input type="text" name="wName" required></div>
-                    <div><label>Phone Number</label><input type="tel" name="wPhone" maxlength="10"></div>
-                </div>
-                
-                <div class="flex-row">
-                    <div><label>Looking For (Brand/Product) *</label><input type="text" name="wBrand" placeholder="e.g. 55 inch LG TV" required></div>
-                    <div><label>Remind me to follow up on:</label><input type="date" name="wFollowUp"></div>
-                </div>
-
-                <label>Customer Notes / Quotes given</label>
-                <textarea name="wNotes" rows="2" placeholder="e.g. Quoted ₹45,000. Said he will discuss with wife and come back." required></textarea>
-
-                <button type="submit" id="subBtn" class="submit-btn">+ SAVE LEAD</button>
-            </form>
+    <div id="mainApp" style="display:none;">
+        <div class="header">
+            <div class="logo">WALK-IN TRACKER</div>
+            <button onclick="location.href='index.html'" style="background:white; color:#004d40; border:none; padding:8px 15px; border-radius:4px; font-weight:bold; cursor:pointer;">⬅ Back to CRM</button>
         </div>
 
-        <h3>Active Walk-In Leads <button onclick="loadWalkins()" style="float:right; font-size:12px; cursor:pointer;">🔄 Refresh</button></h3>
-        <div id="walkinList">
-            <div class="empty-msg">Loading active leads...</div>
-        </div>
+        <div class="container">
+            <div class="form-area">
+                <h3>Log New Walk-In Customer</h3>
+                <form id="walkinForm">
+                    <div class="flex-row">
+                        <div><label>Customer Name *</label><input type="text" name="wName" required></div>
+                        <div><label>Phone Number</label><input type="tel" name="wPhone" maxlength="10"></div>
+                    </div>
+                    
+                    <div class="flex-row">
+                        <div><label>Looking For (Brand/Product) *</label><input type="text" name="wBrand" placeholder="e.g. 55 inch LG TV" required></div>
+                        <div><label>Remind me to follow up on:</label><input type="date" name="wFollowUp"></div>
+                    </div>
 
+                    <label>Customer Notes / Quotes given</label>
+                    <textarea name="wNotes" rows="2" placeholder="e.g. Quoted ₹45,000. Said he will discuss with wife and come back." required></textarea>
+
+                    <button type="submit" id="subBtn" class="submit-btn">+ SAVE LEAD</button>
+                </form>
+            </div>
+
+            <h3>Active Walk-In Leads <button onclick="loadWalkins()" style="float:right; font-size:12px; cursor:pointer;">🔄 Refresh</button></h3>
+            <div id="walkinList">
+                <div class="empty-msg">Loading active leads...</div>
+            </div>
+        </div>
     </div>
 
     <script>
-        // Your newly generated Google Script URL
+        // ⚠️ YOUR WALK-IN GOOGLE SCRIPT URL ⚠️
         const scriptURL = 'https://script.google.com/macros/s/AKfycbzb0PYWQdDywPfIZSiUDft1SGtbBKzpz0nsDvcgpg0wwJKUDPfFnTQLxFx5xoYq9TWn/exec';
 
-        window.onload = () => { loadWalkins(); };
+        // --- SECURITY LOGIC ---
+        window.onload = () => { 
+            // Check if they already logged in during this browser session
+            if(sessionStorage.getItem('avAuthWalkin') === 'true') {
+                unlockApp();
+            }
+        };
 
-        // Handle Form Submission
+        function checkLogin() {
+            const u = document.getElementById('loginUser').value;
+            const p = document.getElementById('loginPass').value;
+            
+            if (u === 'admin' && p === 'av123') {
+                sessionStorage.setItem('avAuthWalkin', 'true');
+                unlockApp();
+            } else {
+                document.getElementById('loginError').style.display = 'block';
+            }
+        }
+
+        function unlockApp() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('mainApp').style.display = 'block';
+            loadWalkins(); // Only load the data from Google once they are verified
+        }
+
+        // --- DATABASE LOGIC ---
         document.getElementById('walkinForm').addEventListener('submit', e => {
             e.preventDefault();
             const btn = document.getElementById('subBtn');
@@ -95,7 +134,6 @@
             .catch(error => { alert("Error saving."); btn.disabled = false; btn.innerText = "+ SAVE LEAD"; });
         });
 
-        // Load Walk-ins and Calculate Days/Alarms
         async function loadWalkins() {
             const listDiv = document.getElementById('walkinList');
             try {
@@ -109,26 +147,20 @@
                 }
 
                 const today = new Date();
-                today.setHours(0,0,0,0); // Normalize today to midnight
+                today.setHours(0,0,0,0); 
 
                 data.forEach(item => {
-                    // Calculate days since they walked in
                     const walkInDate = new Date(item.date);
                     const diffTime = Math.abs(today - walkInDate);
                     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
                     let daysText = diffDays === 0 ? "Walked in Today" : `Walked in ${diffDays} days ago`;
 
-                    // Check Follow-Up Alarm
                     let isAlarm = false;
                     let followText = "No follow-up set";
                     if (item.followUp) {
                         const fDate = new Date(item.followUp);
                         followText = "Follow up on: " + fDate.toLocaleDateString();
-                        
-                        // If the follow up date is today or in the past, TRIGGER ALARM
-                        if (fDate <= today) {
-                            isAlarm = true;
-                        }
+                        if (fDate <= today) isAlarm = true;
                     }
 
                     listDiv.innerHTML += `
@@ -167,12 +199,12 @@
             let finalStatus = "";
             if (result.toLowerCase().includes("sale")) finalStatus = "Converted to Sale";
             else if (result.toLowerCase().includes("dead")) finalStatus = "Lost/Dead";
-            else finalStatus = result; // Let them type custom if they want
+            else finalStatus = result; 
             
             try {
                 await fetch(`${scriptURL}?action=closeLead&row=${row}&result=${encodeURIComponent(finalStatus)}`);
                 alert("Lead closed successfully!");
-                loadWalkins(); // Refresh dashboard
+                loadWalkins(); 
             } catch (err) {
                 alert("Failed to close lead.");
             }
