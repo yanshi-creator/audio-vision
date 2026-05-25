@@ -19,7 +19,8 @@
 
         /* MAIN APP */
         .header { background: #004d40; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100;}
-        .logo { font-size: 22px; font-weight: bold; letter-spacing: 1px; color: #a7ffeb;}
+        .logo { font-size: 22px; font-weight: bold; letter-spacing: 1px; color: #fff;}
+        .logo span { font-size: 14px; color: #a7ffeb; font-weight: normal; margin-left: 5px; }
         .container { max-width: 800px; margin: 20px auto; padding: 0 15px; }
         
         .form-area { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 25px; border-top: 5px solid #00bfa5;}
@@ -46,14 +47,15 @@
         @keyframes blinker { 50% { opacity: 0.5; } }
         .btn-close { background: #455a64; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; margin-top: 10px;}
         
-        /* CLOSE LEAD MODAL */
+        /* MODAL */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background: white; width: 90%; max-width: 400px; padding: 25px; border-radius: 12px; text-align: center; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.2);}
+        .modal-content { background: white; width: 90%; max-width: 420px; padding: 25px; border-radius: 12px; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.2);}
         .close-btn { position: absolute; right: 15px; top: 10px; font-size: 24px; cursor: pointer; color: #888; }
-        .action-btn { width: 100%; padding: 12px; margin-top: 10px; border: none; border-radius: 6px; font-weight: bold; font-size: 15px; cursor: pointer; color: white; }
+        .action-btn { width: 100%; padding: 12px; margin-top: 10px; border: none; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; color: white; }
         .btn-bought { background: #28a745; }
         .btn-lost { background: #d32f2f; }
         .btn-other { background: #f39c12; }
+        .btn-update-note { background: #004d40; padding: 10px; margin-top: 8px;}
 
         .empty-msg { text-align: center; color: #888; font-style: italic; padding: 20px; }
     </style>
@@ -75,17 +77,25 @@
         <div class="modal-content">
             <span class="close-btn" onclick="hideCloseModal()">&times;</span>
             <h3 id="modalLeadName" style="margin-top:0; color:#1a1a1a;">Update Lead</h3>
-            <p style="font-size:13px; color:#666; margin-bottom:20px;">What is the final status of this customer?</p>
             
-            <button class="action-btn btn-bought" onclick="submitCloseLead('Bought')">✅ BOUGHT (Closed Won)</button>
-            <button class="action-btn btn-lost" onclick="submitCloseLead('Didn\'t Buy')">❌ DIDN'T BUY (Lost)</button>
-            <button class="action-btn btn-other" onclick="submitCloseLead('Other')">📝 OTHER (Custom Reason)</button>
+            <div style="background:#f4f9f9; padding:15px; border-radius:8px; border:1px solid #b2dfdb; margin-bottom:20px;">
+                <label style="margin-top:0; color:#00695c;">Add an Update (Keeps Lead Open)</label>
+                <textarea id="newLeadNote" rows="2" placeholder="e.g. Called them, they asked for 2 more days..."></textarea>
+                <button class="action-btn btn-update-note" onclick="submitNote()">💾 Save Note & Keep Open</button>
+            </div>
+
+            <div style="border-top:2px dashed #ddd; padding-top:20px; text-align:center;">
+                <p style="font-size:13px; color:#666; margin-bottom:10px; margin-top:0;">Or, what is the final status to close this lead?</p>
+                <button class="action-btn btn-bought" onclick="submitCloseLead('Bought')">✅ BOUGHT (Closed Won)</button>
+                <button class="action-btn btn-lost" onclick="submitCloseLead('Didn\'t Buy')">❌ DIDN'T BUY (Lost)</button>
+                <button class="action-btn btn-other" onclick="submitCloseLead('Other')">📝 OTHER (Custom Reason)</button>
+            </div>
         </div>
     </div>
 
     <div id="mainApp" style="display:none;">
         <div class="header">
-            <div class="logo">WALK-IN TRACKER</div>
+            <div class="logo">AUDIO VISION <span>| Walk-In Tracker</span></div>
             <button onclick="location.href='index.html'" style="background:white; color:#004d40; border:none; padding:8px 15px; border-radius:4px; font-weight:bold; cursor:pointer;">⬅ Back to CRM</button>
         </div>
 
@@ -116,8 +126,7 @@
 
             <h3>Active Walk-In Leads <button onclick="loadWalkins()" style="float:right; font-size:12px; cursor:pointer;">🔄 Refresh</button></h3>
             
-            <div class="tab-container" id="salesmanTabs">
-                </div>
+            <div class="tab-container" id="salesmanTabs"></div>
 
             <div id="walkinList">
                 <div class="empty-msg">Loading active leads...</div>
@@ -130,7 +139,6 @@
         // ⚠️ YOUR WALK-IN GOOGLE SCRIPT URL ⚠️
         const scriptURL = 'https://script.google.com/macros/s/AKfycbzb0PYWQdDywPfIZSiUDft1SGtbBKzpz0nsDvcgpg0wwJKUDPfFnTQLxFx5xoYq9TWn/exec';
 
-        // Globals for filtering and closing
         let allLeads = [];
         let currentActiveTab = "All";
         let targetRowToClose = null;
@@ -191,11 +199,10 @@
                     return;
                 }
 
-                // SORTING LOGIC: Earliest follow-up dates first. Items with NO date go to the bottom.
                 allLeads = data.sort((a, b) => {
                     if (!a.followUp && !b.followUp) return 0;
-                    if (!a.followUp) return 1; // Send A to bottom
-                    if (!b.followUp) return -1; // Send B to bottom
+                    if (!a.followUp) return 1; 
+                    if (!b.followUp) return -1; 
                     return new Date(a.followUp) - new Date(b.followUp);
                 });
 
@@ -208,7 +215,6 @@
 
         // --- RENDER TABS AND CARDS ---
         function renderDashboard() {
-            // 1. Build Tabs based on unique salespeople
             let salesmen = [...new Set(allLeads.map(item => item.salesman))];
             const tabDiv = document.getElementById('salesmanTabs');
             
@@ -219,13 +225,11 @@
             });
             tabDiv.innerHTML = tabsHtml;
 
-            // 2. Filter Leads based on active tab
             let filteredLeads = allLeads;
             if (currentActiveTab !== "All") {
                 filteredLeads = allLeads.filter(item => (item.salesman || "Unassigned") === currentActiveTab);
             }
 
-            // 3. Draw Cards
             const listDiv = document.getElementById('walkinList');
             listDiv.innerHTML = "";
             const today = new Date();
@@ -265,9 +269,7 @@
                     
                     <div style="background:rgba(0,0,0,0.03); padding:10px; border-radius:4px; margin-top:10px; font-size:14px; border:1px solid ${isAlarm ? '#ef9a9a' : '#e0e0e0'};">
                         <b>Looking for:</b> <span style="color:#00695c; font-weight:bold;">${item.brand}</span><br>
-                        <div style="margin-top: 5px; border-top: 1px dashed #ccc; padding-top: 5px; color:#444;">
-                            <b>Notes:</b> ${item.notes}
-                        </div>
+                        <div style="margin-top: 5px; border-top: 1px dashed #ccc; padding-top: 5px; color:#444; white-space: pre-wrap;"><b>Timeline/Notes:</b><br>${item.notes}</div>
                     </div>
                     
                     <div style="margin-top:8px; font-size:12px; font-weight:bold; color:${isAlarm ? '#d32f2f' : '#888'};">
@@ -284,40 +286,8 @@
             renderDashboard();
         }
 
-        // --- CLOSING LEADS MODAL LOGIC ---
+        // --- UPDATE & CLOSE LEAD MODAL LOGIC ---
         function openCloseModal(row, name) {
             targetRowToClose = row;
             document.getElementById('modalLeadName').innerText = "Update: " + name;
-            document.getElementById('closeModal').style.display = 'flex';
-        }
-
-        function hideCloseModal() {
-            document.getElementById('closeModal').style.display = 'none';
-            targetRowToClose = null;
-        }
-
-        async function submitCloseLead(actionType) {
-            let finalStatus = actionType;
-            
-            if (actionType === "Other") {
-                let customReason = prompt("Please type the custom status or reason:");
-                if (!customReason || customReason.trim() === "") return; // cancelled
-                finalStatus = "Other: " + customReason;
-            }
-
-            // Show loading state
-            hideCloseModal();
-            document.getElementById('walkinList').innerHTML = '<div class="empty-msg">Updating database...</div>';
-
-            try {
-                await fetch(`${scriptURL}?action=closeLead&row=${targetRowToClose}&result=${encodeURIComponent(finalStatus)}`);
-                alert("Lead updated successfully!");
-                loadWalkins(); // Refresh dashboard
-            } catch (err) {
-                alert("Failed to close lead.");
-                loadWalkins();
-            }
-        }
-    </script>
-</body>
-</html>
+            document.getElementById('newLeadNote').value = ""; // Clear
