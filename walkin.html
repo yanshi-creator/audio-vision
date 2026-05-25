@@ -136,7 +136,7 @@
     </div>
 
     <script>
-        // ⚠️ YOUR WALK-IN GOOGLE SCRIPT URL ⚠️
+        // Your existing Walk-In Google Script URL
         const scriptURL = 'https://script.google.com/macros/s/AKfycbzb0PYWQdDywPfIZSiUDft1SGtbBKzpz0nsDvcgpg0wwJKUDPfFnTQLxFx5xoYq9TWn/exec';
 
         let allLeads = [];
@@ -290,4 +290,54 @@
         function openCloseModal(row, name) {
             targetRowToClose = row;
             document.getElementById('modalLeadName').innerText = "Update: " + name;
-            document.getElementById('newLeadNote').value = ""; // Clear
+            document.getElementById('newLeadNote').value = ""; // Clear old typing
+            document.getElementById('closeModal').style.display = 'flex';
+        }
+
+        function hideCloseModal() {
+            document.getElementById('closeModal').style.display = 'none';
+            targetRowToClose = null;
+        }
+
+        async function submitNote() {
+            let noteText = document.getElementById('newLeadNote').value.trim();
+            if(!noteText) {
+                alert("Please type an update note first.");
+                return;
+            }
+            
+            hideCloseModal();
+            document.getElementById('walkinList').innerHTML = '<div class="empty-msg">Saving update...</div>';
+
+            try {
+                await fetch(`${scriptURL}?action=updateLeadNote&row=${targetRowToClose}&note=${encodeURIComponent(noteText)}`);
+                loadWalkins(); 
+            } catch (err) {
+                alert("Failed to save note.");
+                loadWalkins();
+            }
+        }
+
+        async function submitCloseLead(actionType) {
+            let finalStatus = actionType;
+            
+            if (actionType === "Other") {
+                let customReason = prompt("Please type the custom status or reason:");
+                if (!customReason || customReason.trim() === "") return; 
+                finalStatus = "Other: " + customReason;
+            }
+
+            hideCloseModal();
+            document.getElementById('walkinList').innerHTML = '<div class="empty-msg">Updating database...</div>';
+
+            try {
+                await fetch(`${scriptURL}?action=closeLead&row=${targetRowToClose}&result=${encodeURIComponent(finalStatus)}`);
+                loadWalkins(); 
+            } catch (err) {
+                alert("Failed to close lead.");
+                loadWalkins();
+            }
+        }
+    </script>
+</body>
+</html>
