@@ -7,7 +7,7 @@
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #eef2f3; padding: 0; margin: 0; color: #333; }
         
-        /* LOGIN SCREEN STYLES */
+        /* LOGIN SCREEN */
         #loginScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #004d40; z-index: 9999; display: flex; justify-content: center; align-items: center; }
         .login-box { background: white; padding: 35px 30px; border-radius: 12px; text-align: center; width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
         .login-box h2 { margin-top: 0; color: #004d40; letter-spacing: 1px;}
@@ -17,25 +17,44 @@
         .login-box button:hover { background: #009688; }
         #loginError { color: #d32f2f; font-size: 13px; font-weight: bold; display: none; margin-top: 15px; background: #ffebee; padding: 8px; border-radius: 4px;}
 
-        /* MAIN APP STYLES */
+        /* MAIN APP */
         .header { background: #004d40; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100;}
         .logo { font-size: 22px; font-weight: bold; letter-spacing: 1px; color: #a7ffeb;}
         .container { max-width: 800px; margin: 20px auto; padding: 0 15px; }
+        
         .form-area { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 25px; border-top: 5px solid #00bfa5;}
         .form-area h3 { margin-top: 0; color: #004d40; }
         .flex-row { display: flex; gap: 10px; }
         .flex-row > div { flex: 1; }
         label { font-weight: bold; display: block; margin-top: 12px; font-size: 13px; color: #555;}
-        input[type="text"], input[type="tel"], input[type="date"], textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
         .submit-btn { background: #00bfa5; color: white; padding: 12px; border: none; width: 100%; font-size: 16px; font-weight: bold; border-radius: 6px; margin-top: 20px; cursor: pointer;}
-        .submit-btn:hover { background: #009688; }
+        
+        /* DYNAMIC TABS */
+        .tab-container { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 15px; border-bottom: 2px solid #ddd; padding-bottom: 5px;}
+        .tab-btn { background: #ddd; border: none; padding: 8px 15px; font-weight: bold; border-radius: 20px; cursor: pointer; color: #555; transition: 0.2s; font-size:13px;}
+        .tab-btn.active { background: #004d40; color: white; }
+
+        /* CARDS */
         .lead-card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 15px; border-left: 5px solid #00bfa5; position: relative;}
         .lead-card.alarm { border-left-color: #d32f2f; background: #fff5f5; }
         .card-header { display: flex; justify-content: space-between; font-size: 12px; color: #888; font-weight: bold; border-bottom: 1px dashed #eee; padding-bottom: 8px; margin-bottom: 8px;}
         .days-badge { background: #e0f2f1; color: #00695c; padding: 3px 8px; border-radius: 12px; font-size: 11px;}
         .alarm-badge { background: #d32f2f; color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; animation: blinker 2s linear infinite;}
+        .salesman-badge { background: #fff3e0; color: #e65100; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-left: 10px; border: 1px solid #ffe0b2;}
+        
         @keyframes blinker { 50% { opacity: 0.5; } }
         .btn-close { background: #455a64; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; margin-top: 10px;}
+        
+        /* CLOSE LEAD MODAL */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-content { background: white; width: 90%; max-width: 400px; padding: 25px; border-radius: 12px; text-align: center; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.2);}
+        .close-btn { position: absolute; right: 15px; top: 10px; font-size: 24px; cursor: pointer; color: #888; }
+        .action-btn { width: 100%; padding: 12px; margin-top: 10px; border: none; border-radius: 6px; font-weight: bold; font-size: 15px; cursor: pointer; color: white; }
+        .btn-bought { background: #28a745; }
+        .btn-lost { background: #d32f2f; }
+        .btn-other { background: #f39c12; }
+
         .empty-msg { text-align: center; color: #888; font-style: italic; padding: 20px; }
     </style>
 </head>
@@ -52,6 +71,18 @@
         </div>
     </div>
 
+    <div id="closeModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="hideCloseModal()">&times;</span>
+            <h3 id="modalLeadName" style="margin-top:0; color:#1a1a1a;">Update Lead</h3>
+            <p style="font-size:13px; color:#666; margin-bottom:20px;">What is the final status of this customer?</p>
+            
+            <button class="action-btn btn-bought" onclick="submitCloseLead('Bought')">✅ BOUGHT (Closed Won)</button>
+            <button class="action-btn btn-lost" onclick="submitCloseLead('Didn\'t Buy')">❌ DIDN'T BUY (Lost)</button>
+            <button class="action-btn btn-other" onclick="submitCloseLead('Other')">📝 OTHER (Custom Reason)</button>
+        </div>
+    </div>
+
     <div id="mainApp" style="display:none;">
         <div class="header">
             <div class="logo">WALK-IN TRACKER</div>
@@ -59,6 +90,7 @@
         </div>
 
         <div class="container">
+            
             <div class="form-area">
                 <h3>Log New Walk-In Customer</h3>
                 <form id="walkinForm">
@@ -68,9 +100,12 @@
                     </div>
                     
                     <div class="flex-row">
+                        <div><label>Salesperson Name *</label><input type="text" name="wSalesman" placeholder="e.g. Ajay" required></div>
                         <div><label>Looking For (Brand/Product) *</label><input type="text" name="wBrand" placeholder="e.g. 55 inch LG TV" required></div>
-                        <div><label>Remind me to follow up on:</label><input type="date" name="wFollowUp"></div>
                     </div>
+
+                    <label>Remind me to follow up on:</label>
+                    <input type="date" name="wFollowUp">
 
                     <label>Customer Notes / Quotes given</label>
                     <textarea name="wNotes" rows="2" placeholder="e.g. Quoted ₹45,000. Said he will discuss with wife and come back." required></textarea>
@@ -80,9 +115,14 @@
             </div>
 
             <h3>Active Walk-In Leads <button onclick="loadWalkins()" style="float:right; font-size:12px; cursor:pointer;">🔄 Refresh</button></h3>
+            
+            <div class="tab-container" id="salesmanTabs">
+                </div>
+
             <div id="walkinList">
                 <div class="empty-msg">Loading active leads...</div>
             </div>
+
         </div>
     </div>
 
@@ -90,9 +130,13 @@
         // ⚠️ YOUR WALK-IN GOOGLE SCRIPT URL ⚠️
         const scriptURL = 'https://script.google.com/macros/s/AKfycbzb0PYWQdDywPfIZSiUDft1SGtbBKzpz0nsDvcgpg0wwJKUDPfFnTQLxFx5xoYq9TWn/exec';
 
-        // --- SECURITY LOGIC ---
+        // Globals for filtering and closing
+        let allLeads = [];
+        let currentActiveTab = "All";
+        let targetRowToClose = null;
+
+        // --- SECURITY ---
         window.onload = () => { 
-            // Check if they already logged in during this browser session
             if(sessionStorage.getItem('avAuthWalkin') === 'true') {
                 unlockApp();
             }
@@ -101,7 +145,6 @@
         function checkLogin() {
             const u = document.getElementById('loginUser').value;
             const p = document.getElementById('loginPass').value;
-            
             if (u === 'admin' && p === 'av123') {
                 sessionStorage.setItem('avAuthWalkin', 'true');
                 unlockApp();
@@ -113,10 +156,10 @@
         function unlockApp() {
             document.getElementById('loginScreen').style.display = 'none';
             document.getElementById('mainApp').style.display = 'block';
-            loadWalkins(); // Only load the data from Google once they are verified
+            loadWalkins(); 
         }
 
-        // --- DATABASE LOGIC ---
+        // --- FORM SUBMISSION ---
         document.getElementById('walkinForm').addEventListener('submit', e => {
             e.preventDefault();
             const btn = document.getElementById('subBtn');
@@ -134,79 +177,145 @@
             .catch(error => { alert("Error saving."); btn.disabled = false; btn.innerText = "+ SAVE LEAD"; });
         });
 
+        // --- LOAD AND SORT LEADS ---
         async function loadWalkins() {
             const listDiv = document.getElementById('walkinList');
             try {
                 const resp = await fetch(scriptURL + "?action=getWalkins");
                 const data = await resp.json();
-                listDiv.innerHTML = "";
                 
                 if(data.length === 0) {
+                    allLeads = [];
                     listDiv.innerHTML = '<div class="empty-msg">No active walk-ins right now. Great job!</div>';
+                    document.getElementById('salesmanTabs').innerHTML = "";
                     return;
                 }
 
-                const today = new Date();
-                today.setHours(0,0,0,0); 
-
-                data.forEach(item => {
-                    const walkInDate = new Date(item.date);
-                    const diffTime = Math.abs(today - walkInDate);
-                    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-                    let daysText = diffDays === 0 ? "Walked in Today" : `Walked in ${diffDays} days ago`;
-
-                    let isAlarm = false;
-                    let followText = "No follow-up set";
-                    if (item.followUp) {
-                        const fDate = new Date(item.followUp);
-                        followText = "Follow up on: " + fDate.toLocaleDateString();
-                        if (fDate <= today) isAlarm = true;
-                    }
-
-                    listDiv.innerHTML += `
-                    <div class="lead-card ${isAlarm ? 'alarm' : ''}">
-                        <div class="card-header">
-                            <span>📅 ${walkInDate.toLocaleDateString()}</span>
-                            ${isAlarm ? `<span class="alarm-badge">🚨 FOLLOW UP DUE!</span>` : `<span class="days-badge">⏳ ${daysText}</span>`}
-                        </div>
-                        <h3 style="margin:5px 0; color:#1a1a1a; font-size:18px;">${item.name} <span style="font-size:14px; color:#666; font-weight:normal;">(${item.phone || 'No Phone'})</span></h3>
-                        
-                        <div style="background:rgba(0,0,0,0.03); padding:10px; border-radius:4px; margin-top:10px; font-size:14px; border:1px solid ${isAlarm ? '#ef9a9a' : '#e0e0e0'};">
-                            <b>Looking for:</b> <span style="color:#00695c; font-weight:bold;">${item.brand}</span><br>
-                            <div style="margin-top: 5px; border-top: 1px dashed #ccc; padding-top: 5px; color:#444;">
-                                <b>Notes:</b> ${item.notes}
-                            </div>
-                        </div>
-                        
-                        <div style="margin-top:8px; font-size:12px; font-weight:bold; color:${isAlarm ? '#d32f2f' : '#888'};">
-                            ${isAlarm ? `⚠️ THIS CUSTOMER IS DUE FOR A CALL TODAY!` : `📌 ${followText}`}
-                        </div>
-
-                        <button class="btn-close" onclick="closeLead('${item.row}', '${item.name}')">Close / Update Lead</button>
-                    </div>`;
+                // SORTING LOGIC: Earliest follow-up dates first. Items with NO date go to the bottom.
+                allLeads = data.sort((a, b) => {
+                    if (!a.followUp && !b.followUp) return 0;
+                    if (!a.followUp) return 1; // Send A to bottom
+                    if (!b.followUp) return -1; // Send B to bottom
+                    return new Date(a.followUp) - new Date(b.followUp);
                 });
+
+                renderDashboard();
+
             } catch (err) {
                 listDiv.innerHTML = "Error loading leads.";
             }
         }
 
-        async function closeLead(row, name) {
-            let options = "What happened with " + name + "?\n\n1. Type 'Sale' if they bought it.\n2. Type 'Dead' if they aren't interested anymore.";
-            let result = prompt(options);
+        // --- RENDER TABS AND CARDS ---
+        function renderDashboard() {
+            // 1. Build Tabs based on unique salespeople
+            let salesmen = [...new Set(allLeads.map(item => item.salesman))];
+            const tabDiv = document.getElementById('salesmanTabs');
             
-            if (!result) return;
+            let tabsHtml = `<button class="tab-btn ${currentActiveTab === 'All' ? 'active' : ''}" onclick="switchTab('All')">All Leads</button>`;
+            salesmen.forEach(name => {
+                let safeName = name || "Unassigned";
+                tabsHtml += `<button class="tab-btn ${currentActiveTab === safeName ? 'active' : ''}" onclick="switchTab('${safeName}')">${safeName}</button>`;
+            });
+            tabDiv.innerHTML = tabsHtml;
+
+            // 2. Filter Leads based on active tab
+            let filteredLeads = allLeads;
+            if (currentActiveTab !== "All") {
+                filteredLeads = allLeads.filter(item => (item.salesman || "Unassigned") === currentActiveTab);
+            }
+
+            // 3. Draw Cards
+            const listDiv = document.getElementById('walkinList');
+            listDiv.innerHTML = "";
+            const today = new Date();
+            today.setHours(0,0,0,0); 
+
+            if(filteredLeads.length === 0) {
+                listDiv.innerHTML = `<div class="empty-msg">No active leads for ${currentActiveTab}.</div>`;
+                return;
+            }
+
+            filteredLeads.forEach(item => {
+                const walkInDate = new Date(item.date);
+                const diffTime = Math.abs(today - walkInDate);
+                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                let daysText = diffDays === 0 ? "Walked in Today" : `Walked in ${diffDays} days ago`;
+
+                let isAlarm = false;
+                let followText = "No follow-up set";
+                if (item.followUp) {
+                    const fDate = new Date(item.followUp);
+                    followText = "Follow up on: " + fDate.toLocaleDateString();
+                    if (fDate <= today) isAlarm = true;
+                }
+
+                listDiv.innerHTML += `
+                <div class="lead-card ${isAlarm ? 'alarm' : ''}">
+                    <div class="card-header">
+                        <span>📅 ${walkInDate.toLocaleDateString()}</span>
+                        ${isAlarm ? `<span class="alarm-badge">🚨 FOLLOW UP DUE!</span>` : `<span class="days-badge">⏳ ${daysText}</span>`}
+                    </div>
+                    
+                    <h3 style="margin:5px 0; color:#1a1a1a; font-size:18px;">
+                        ${item.name} 
+                        <span style="font-size:14px; color:#666; font-weight:normal;">(${item.phone || 'No Phone'})</span>
+                        <span class="salesman-badge">👤 ${item.salesman || 'Unassigned'}</span>
+                    </h3>
+                    
+                    <div style="background:rgba(0,0,0,0.03); padding:10px; border-radius:4px; margin-top:10px; font-size:14px; border:1px solid ${isAlarm ? '#ef9a9a' : '#e0e0e0'};">
+                        <b>Looking for:</b> <span style="color:#00695c; font-weight:bold;">${item.brand}</span><br>
+                        <div style="margin-top: 5px; border-top: 1px dashed #ccc; padding-top: 5px; color:#444;">
+                            <b>Notes:</b> ${item.notes}
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top:8px; font-size:12px; font-weight:bold; color:${isAlarm ? '#d32f2f' : '#888'};">
+                        ${isAlarm ? `⚠️ THIS CUSTOMER IS DUE FOR A CALL TODAY!` : `📌 ${followText}`}
+                    </div>
+
+                    <button class="btn-close" onclick="openCloseModal('${item.row}', '${item.name.replace(/'/g, "\\'")}')">Update / Close Lead</button>
+                </div>`;
+            });
+        }
+
+        function switchTab(tabName) {
+            currentActiveTab = tabName;
+            renderDashboard();
+        }
+
+        // --- CLOSING LEADS MODAL LOGIC ---
+        function openCloseModal(row, name) {
+            targetRowToClose = row;
+            document.getElementById('modalLeadName').innerText = "Update: " + name;
+            document.getElementById('closeModal').style.display = 'flex';
+        }
+
+        function hideCloseModal() {
+            document.getElementById('closeModal').style.display = 'none';
+            targetRowToClose = null;
+        }
+
+        async function submitCloseLead(actionType) {
+            let finalStatus = actionType;
             
-            let finalStatus = "";
-            if (result.toLowerCase().includes("sale")) finalStatus = "Converted to Sale";
-            else if (result.toLowerCase().includes("dead")) finalStatus = "Lost/Dead";
-            else finalStatus = result; 
-            
+            if (actionType === "Other") {
+                let customReason = prompt("Please type the custom status or reason:");
+                if (!customReason || customReason.trim() === "") return; // cancelled
+                finalStatus = "Other: " + customReason;
+            }
+
+            // Show loading state
+            hideCloseModal();
+            document.getElementById('walkinList').innerHTML = '<div class="empty-msg">Updating database...</div>';
+
             try {
-                await fetch(`${scriptURL}?action=closeLead&row=${row}&result=${encodeURIComponent(finalStatus)}`);
-                alert("Lead closed successfully!");
-                loadWalkins(); 
+                await fetch(`${scriptURL}?action=closeLead&row=${targetRowToClose}&result=${encodeURIComponent(finalStatus)}`);
+                alert("Lead updated successfully!");
+                loadWalkins(); // Refresh dashboard
             } catch (err) {
                 alert("Failed to close lead.");
+                loadWalkins();
             }
         }
     </script>
