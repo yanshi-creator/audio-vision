@@ -136,14 +136,13 @@
     </div>
 
     <script>
-        // Your existing Walk-In Google Script URL
+        // ⚠️ YOUR WALK-IN GOOGLE SCRIPT URL ⚠️
         const scriptURL = 'https://script.google.com/macros/s/AKfycbzb0PYWQdDywPfIZSiUDft1SGtbBKzpz0nsDvcgpg0wwJKUDPfFnTQLxFx5xoYq9TWn/exec';
 
         let allLeads = [];
         let currentActiveTab = "All";
         let targetRowToClose = null;
 
-        // --- SECURITY ---
         window.onload = () => { 
             if(sessionStorage.getItem('avAuthWalkin') === 'true') {
                 unlockApp();
@@ -167,7 +166,6 @@
             loadWalkins(); 
         }
 
-        // --- FORM SUBMISSION ---
         document.getElementById('walkinForm').addEventListener('submit', e => {
             e.preventDefault();
             const btn = document.getElementById('subBtn');
@@ -185,7 +183,6 @@
             .catch(error => { alert("Error saving."); btn.disabled = false; btn.innerText = "+ SAVE LEAD"; });
         });
 
-        // --- LOAD AND SORT LEADS ---
         async function loadWalkins() {
             const listDiv = document.getElementById('walkinList');
             try {
@@ -213,7 +210,6 @@
             }
         }
 
-        // --- RENDER TABS AND CARDS ---
         function renderDashboard() {
             let salesmen = [...new Set(allLeads.map(item => item.salesman))];
             const tabDiv = document.getElementById('salesmanTabs');
@@ -286,11 +282,10 @@
             renderDashboard();
         }
 
-        // --- UPDATE & CLOSE LEAD MODAL LOGIC ---
         function openCloseModal(row, name) {
             targetRowToClose = row;
             document.getElementById('modalLeadName').innerText = "Update: " + name;
-            document.getElementById('newLeadNote').value = ""; // Clear old typing
+            document.getElementById('newLeadNote').value = ""; 
             document.getElementById('closeModal').style.display = 'flex';
         }
 
@@ -299,6 +294,7 @@
             targetRowToClose = null;
         }
 
+        // --- BULLETPROOF GET ACTIONS ---
         async function submitNote() {
             let noteText = document.getElementById('newLeadNote').value.trim();
             if(!noteText) {
