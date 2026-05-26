@@ -27,7 +27,6 @@
         input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
         .submit-btn { background: #00bfa5; color: white; padding: 12px; border: none; width: 100%; font-size: 16px; font-weight: bold; border-radius: 6px; margin-top: 20px; cursor: pointer;}
         
-        /* VIEW TOGGLE */
         .view-toggle { display:flex; margin-bottom:15px; background:#ddd; border-radius:6px; overflow:hidden; width:fit-content; }
         .view-toggle button { padding:10px 20px; border:none; font-weight:bold; cursor:pointer; transition:0.2s; font-size:14px; }
         .view-btn-active { background:#004d40; color:white; }
@@ -90,6 +89,13 @@
                 <button class="action-btn btn-lost" onclick="submitCloseLead('Closed - Did Not Buy')">❌ DIDN'T BUY (Lost)</button>
                 <button class="action-btn btn-other" onclick="submitCloseLead('OTHER')">📝 OTHER (Custom Reason)</button>
             </div>
+            
+            <form id="actionForm" target="hiddenFrame" method="POST" action="https://script.google.com/macros/s/AKfycbzb0PYWQdDywPfIZSiUDft1SGtbBKzpz0nsDvcgpg0wwJKUDPfFnTQLxFx5xoYq9TWn/exec" style="display:none;">
+                <input type="hidden" name="action" id="actionField">
+                <input type="hidden" name="row" id="rowField">
+                <input type="hidden" name="note" id="noteField">
+                <input type="hidden" name="result" id="resultField">
+            </form>
         </div>
     </div>
 
@@ -102,7 +108,7 @@
         <div class="container">
             <div class="form-area">
                 <h3>Log New Walk-In Customer</h3>
-                <form id="walkinForm">
+                <form id="walkinForm" target="hiddenFrame" method="POST" action="https://script.google.com/macros/s/AKfycbzb0PYWQdDywPfIZSiUDft1SGtbBKzpz0nsDvcgpg0wwJKUDPfFnTQLxFx5xoYq9TWn/exec" onsubmit="handleFormSubmit()">
                     <div class="flex-row">
                         <div><label>Customer Name *</label><input type="text" name="wName" required></div>
                         <div><label>Phone Number</label><input type="tel" name="wPhone" maxlength="10"></div>
@@ -135,6 +141,8 @@
         </div>
     </div>
 
+    <iframe name="hiddenFrame" id="hiddenFrame" style="display:none;"></iframe>
+
     <script>
         const scriptURL = 'https://script.google.com/macros/s/AKfycbzb0PYWQdDywPfIZSiUDft1SGtbBKzpz0nsDvcgpg0wwJKUDPfFnTQLxFx5xoYq9TWn/exec';
 
@@ -162,31 +170,24 @@
             loadWalkins(); 
         }
 
-        // NO-CORS FIRE AND FORGET - Form Submission
-        document.getElementById('walkinForm').addEventListener('submit', e => {
-            e.preventDefault();
+        // HANDLES NEW LEADS (Iframe bypass)
+        function handleFormSubmit() {
             const btn = document.getElementById('subBtn');
             btn.innerText = "Saving...";
             btn.disabled = true;
 
-            fetch(scriptURL, { method: 'POST', body: new FormData(e.target), mode: 'no-cors' })
-            .then(() => { 
+            setTimeout(() => {
                 document.getElementById('walkinForm').reset();
                 btn.innerText = "+ SAVE LEAD";
                 btn.disabled = false;
-                setTimeout(loadWalkins, 1200); // Give it a second to save before refresh
-            })
-            .catch(error => { 
-                alert("Network error, but data was likely sent. Refreshing."); 
-                btn.disabled = false; 
-                btn.innerText = "+ SAVE LEAD"; 
                 loadWalkins();
-            });
-        });
+            }, 1500); // Waits 1.5s for iframe to process, then refreshes page
+        }
 
         async function loadWalkins() {
             const listDiv = document.getElementById('walkinList');
             try {
+                // Loading data STILL uses fetch because GET requests are usually safe
                 const resp = await fetch(scriptURL + "?action=getWalkins");
                 const data = await resp.json();
                 
@@ -323,26 +324,26 @@
             targetRowToClose = null;
         }
 
-        // NO-CORS FIRE AND FORGET - Submit Note
-        async function submitNote() {
+        // --- THE INVISIBLE IFRAME MAGIC ---
+        function submitNote() {
             let noteText = document.getElementById('newLeadNote').value.trim();
             if(!noteText) { alert("Please type an update note first."); return; }
             
+            // Populate the hidden form and submit it
+            document.getElementById('actionField').value = 'updateLeadNote';
+            document.getElementById('rowField').value = targetRowToClose;
+            document.getElementById('noteField').value = noteText;
+            document.getElementById('resultField').value = ""; // Not used for notes
+            document.getElementById('actionForm').submit();
+
             hideCloseModal();
             document.getElementById('walkinList').innerHTML = '<div class="empty-msg">Saving update...</div>';
-
-            try {
-                // Ignore browser security and force the request
-                await fetch(`${scriptURL}?action=updateLeadNote&row=${targetRowToClose}&note=${encodeURIComponent(noteText)}`, { mode: 'no-cors' });
-                setTimeout(loadWalkins, 1200); 
-            } catch (err) {
-                alert("Browser blocked request, but data was likely sent.");
-                loadWalkins();
-            }
+            
+            // Wait 1.5 seconds for Google to process, then refresh
+            setTimeout(loadWalkins, 1500); 
         }
 
-        // NO-CORS FIRE AND FORGET - Close Lead
-        async function submitCloseLead(actionType) {
+        function submitCloseLead(actionType) {
             let finalStatus = actionType;
             if (actionType === "OTHER") {
                 let customReason = prompt("Please type the custom status or reason:");
@@ -350,17 +351,18 @@
                 finalStatus = "Other: " + customReason.replace(/['"]/g, ""); 
             }
 
+            // Populate the hidden form and submit it
+            document.getElementById('actionField').value = 'closeLead';
+            document.getElementById('rowField').value = targetRowToClose;
+            document.getElementById('resultField').value = finalStatus;
+            document.getElementById('noteField').value = ""; // Not used for closing
+            document.getElementById('actionForm').submit();
+
             hideCloseModal();
             document.getElementById('walkinList').innerHTML = '<div class="empty-msg">Updating database...</div>';
 
-            try {
-                // Ignore browser security and force the request
-                await fetch(`${scriptURL}?action=closeLead&row=${targetRowToClose}&result=${encodeURIComponent(finalStatus)}`, { mode: 'no-cors' });
-                setTimeout(loadWalkins, 1200); 
-            } catch (err) {
-                alert("Browser blocked request, but data was likely sent.");
-                loadWalkins();
-            }
+            // Wait 1.5 seconds for Google to process, then refresh
+            setTimeout(loadWalkins, 1500); 
         }
     </script>
 </body>
