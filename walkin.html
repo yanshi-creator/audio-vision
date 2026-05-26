@@ -27,6 +27,12 @@
         input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
         .submit-btn { background: #00bfa5; color: white; padding: 12px; border: none; width: 100%; font-size: 16px; font-weight: bold; border-radius: 6px; margin-top: 20px; cursor: pointer;}
         
+        /* VIEW TOGGLE */
+        .view-toggle { display:flex; margin-bottom:15px; background:#ddd; border-radius:6px; overflow:hidden; width:fit-content; }
+        .view-toggle button { padding:10px 20px; border:none; font-weight:bold; cursor:pointer; transition:0.2s; font-size:14px; }
+        .view-btn-active { background:#004d40; color:white; }
+        .view-btn-inactive { background:transparent; color:#555; }
+
         .tab-container { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 15px; border-bottom: 2px solid #ddd; padding-bottom: 5px;}
         .tab-btn { background: #ddd; border: none; padding: 8px 15px; font-weight: bold; border-radius: 20px; cursor: pointer; color: #555; font-size:13px;}
         .tab-btn.active { background: #004d40; color: white; }
@@ -80,8 +86,8 @@
 
             <div style="border-top:2px dashed #ddd; padding-top:20px; text-align:center;">
                 <p style="font-size:13px; color:#666; margin-bottom:10px; margin-top:0;">Or, what is the final status to close this lead?</p>
-                <button class="action-btn btn-bought" onclick="submitCloseLead('WON')">✅ BOUGHT (Closed Won)</button>
-                <button class="action-btn btn-lost" onclick="submitCloseLead('LOST')">❌ DIDN'T BUY (Lost)</button>
+                <button class="action-btn btn-bought" onclick="submitCloseLead('Bought')">✅ BOUGHT (Closed Won)</button>
+                <button class="action-btn btn-lost" onclick="submitCloseLead('Closed - Did Not Buy')">❌ DIDN'T BUY (Lost)</button>
                 <button class="action-btn btn-other" onclick="submitCloseLead('OTHER')">📝 OTHER (Custom Reason)</button>
             </div>
         </div>
@@ -113,20 +119,28 @@
                 </form>
             </div>
 
-            <h3>Active Walk-In Leads <button onclick="loadWalkins()" style="float:right; font-size:12px; cursor:pointer;">🔄 Refresh</button></h3>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0;">Dashboard <button onclick="loadWalkins()" style="font-size:12px; cursor:pointer; margin-left:10px;">🔄 Refresh</button></h3>
+            </div>
+            
+            <div class="view-toggle" style="margin-top:15px;">
+                <button id="btnViewActive" class="view-btn-active" onclick="switchViewMode('Active')">🟢 Active Leads</button>
+                <button id="btnViewComp" class="view-btn-inactive" onclick="switchViewMode('Completed')">📁 Completed Leads</button>
+            </div>
+
             <div class="tab-container" id="salesmanTabs"></div>
             <div id="walkinList">
-                <div class="empty-msg">Loading active leads...</div>
+                <div class="empty-msg">Loading leads...</div>
             </div>
         </div>
     </div>
 
     <script>
-        // Your exact script URL
         const scriptURL = 'https://script.google.com/macros/s/AKfycbzb0PYWQdDywPfIZSiUDft1SGtbBKzpz0nsDvcgpg0wwJKUDPfFnTQLxFx5xoYq9TWn/exec';
 
         let allLeads = [];
         let currentActiveTab = "All";
+        let currentViewMode = "Active"; // Toggles between 'Active' and 'Completed'
         let targetRowToClose = null;
 
         window.onload = () => { 
@@ -148,7 +162,6 @@
             loadWalkins(); 
         }
 
-        // 1. FORM SUBMISSION (Works perfectly)
         document.getElementById('walkinForm').addEventListener('submit', e => {
             e.preventDefault();
             const btn = document.getElementById('subBtn');
@@ -174,7 +187,7 @@
                 
                 if(data.length === 0) {
                     allLeads = [];
-                    listDiv.innerHTML = '<div class="empty-msg">No active walk-ins right now. Great job!</div>';
+                    listDiv.innerHTML = '<div class="empty-msg">No leads found in database.</div>';
                     document.getElementById('salesmanTabs').innerHTML = "";
                     return;
                 }
@@ -192,8 +205,29 @@
             }
         }
 
+        function switchViewMode(mode) {
+            currentViewMode = mode;
+            currentActiveTab = "All"; // Reset tab when switching views
+            
+            if (mode === 'Active') {
+                document.getElementById('btnViewActive').className = 'view-btn-active';
+                document.getElementById('btnViewComp').className = 'view-btn-inactive';
+            } else {
+                document.getElementById('btnViewActive').className = 'view-btn-inactive';
+                document.getElementById('btnViewComp').className = 'view-btn-active';
+            }
+            renderDashboard();
+        }
+
         function renderDashboard() {
-            let salesmen = [...new Set(allLeads.map(item => item.salesman))];
+            // Filter by View Mode First (Active vs Completed)
+            let baseLeads = allLeads.filter(item => {
+                if (currentViewMode === 'Active') return item.status === "Active Lead";
+                return item.status !== "Active Lead"; // Completed
+            });
+
+            // Build Salesman Tabs from the current view
+            let salesmen = [...new Set(baseLeads.map(item => item.salesman))];
             const tabDiv = document.getElementById('salesmanTabs');
             
             let tabsHtml = `<button class="tab-btn ${currentActiveTab === 'All' ? 'active' : ''}" onclick="switchTab('All')">All Leads</button>`;
@@ -203,8 +237,11 @@
             });
             tabDiv.innerHTML = tabsHtml;
 
-            let filteredLeads = allLeads;
-            if (currentActiveTab !== "All") filteredLeads = allLeads.filter(item => (item.salesman || "Unassigned") === currentActiveTab);
+            // Filter by Salesperson Tab
+            let filteredLeads = baseLeads;
+            if (currentActiveTab !== "All") {
+                filteredLeads = baseLeads.filter(item => (item.salesman || "Unassigned") === currentActiveTab);
+            }
 
             const listDiv = document.getElementById('walkinList');
             listDiv.innerHTML = "";
@@ -212,7 +249,7 @@
             today.setHours(0,0,0,0); 
 
             if(filteredLeads.length === 0) {
-                listDiv.innerHTML = `<div class="empty-msg">No active leads for ${currentActiveTab}.</div>`;
+                listDiv.innerHTML = `<div class="empty-msg">No ${currentViewMode.toLowerCase()} leads for ${currentActiveTab}.</div>`;
                 return;
             }
 
@@ -234,11 +271,17 @@
                 if(item.up2) updatesHtml += `<div class="update-item">${item.up2}</div>`;
                 if(item.up3) updatesHtml += `<div class="update-item">${item.up3}</div>`;
 
+                // Different visual style if the lead is Completed
+                let cardStyle = currentViewMode === 'Completed' ? 'border-left-color: #90a4ae; opacity: 0.9;' : '';
+                let statusBadge = currentViewMode === 'Completed' 
+                    ? `<span style="background:#e0e0e0; color:#424242; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:bold;">Final Status: ${item.status}</span>`
+                    : (isAlarm ? `<span class="alarm-badge">🚨 FOLLOW UP DUE!</span>` : `<span class="days-badge">⏳ ${daysText}</span>`);
+
                 listDiv.innerHTML += `
-                <div class="lead-card ${isAlarm ? 'alarm' : ''}">
+                <div class="lead-card ${isAlarm && currentViewMode === 'Active' ? 'alarm' : ''}" style="${cardStyle}">
                     <div class="card-header">
-                        <span>📅 ${walkInDate.toLocaleDateString()}</span>
-                        ${isAlarm ? `<span class="alarm-badge">🚨 FOLLOW UP DUE!</span>` : `<span class="days-badge">⏳ ${daysText}</span>`}
+                        <span>📅 Logged: ${walkInDate.toLocaleDateString()}</span>
+                        ${statusBadge}
                     </div>
                     
                     <h3 style="margin:5px 0; color:#1a1a1a; font-size:18px;">
@@ -247,17 +290,17 @@
                         <span class="salesman-badge">👤 ${item.salesman || 'Unassigned'}</span>
                     </h3>
                     
-                    <div style="background:rgba(0,0,0,0.03); padding:10px; border-radius:4px; margin-top:10px; font-size:14px; border:1px solid ${isAlarm ? '#ef9a9a' : '#e0e0e0'};">
+                    <div style="background:rgba(0,0,0,0.03); padding:10px; border-radius:4px; margin-top:10px; font-size:14px; border:1px solid ${isAlarm && currentViewMode === 'Active' ? '#ef9a9a' : '#e0e0e0'};">
                         <b>Looking for:</b> <span style="color:#00695c; font-weight:bold;">${item.brand}</span><br>
                         <div style="margin-top: 5px; border-top: 1px dashed #ccc; padding-top: 5px; color:#444; white-space: pre-wrap;"><b>Original Note:</b> ${item.notes}</div>
                         ${updatesHtml}
                     </div>
                     
-                    <div style="margin-top:8px; font-size:12px; font-weight:bold; color:${isAlarm ? '#d32f2f' : '#888'};">
+                    ${currentViewMode === 'Active' ? `<div style="margin-top:8px; font-size:12px; font-weight:bold; color:${isAlarm ? '#d32f2f' : '#888'};">
                         ${isAlarm ? `⚠️ THIS CUSTOMER IS DUE FOR A CALL TODAY!` : `📌 ${followText}`}
-                    </div>
+                    </div>` : ''}
 
-                    <button class="btn-close" onclick="openCloseModal('${item.row}', '${item.name.replace(/'/g, "\\'")}')">Update / Close Lead</button>
+                    ${currentViewMode === 'Active' ? `<button class="btn-close" onclick="openCloseModal('${item.row}', '${item.name.replace(/'/g, "\\'")}')">Update / Close Lead</button>` : ''}
                 </div>`;
             });
         }
@@ -279,7 +322,6 @@
             targetRowToClose = null;
         }
 
-        // 2. BULLETPROOF UPDATE (Using POST to match Form Submission)
         async function submitNote() {
             let noteText = document.getElementById('newLeadNote').value.trim();
             if(!noteText) { alert("Please type an update note first."); return; }
@@ -287,43 +329,28 @@
             hideCloseModal();
             document.getElementById('walkinList').innerHTML = '<div class="empty-msg">Saving update...</div>';
 
-            let formData = new FormData();
-            formData.append('action', 'updateLeadNote');
-            formData.append('row', targetRowToClose);
-            formData.append('note', noteText);
-
             try {
-                await fetch(scriptURL, { method: 'POST', body: formData });
+                await fetch(`${scriptURL}?action=updateLeadNote&row=${targetRowToClose}&note=${encodeURIComponent(noteText)}`);
                 loadWalkins(); 
             } catch (err) {
-                alert("Failed to save note. Please check connection.");
+                alert("Failed to save note.");
                 loadWalkins();
             }
         }
 
-        // 3. BULLETPROOF CLOSE (Using POST to match Form Submission)
         async function submitCloseLead(actionType) {
-            let finalStatus = "";
-            
-            if (actionType === "WON") finalStatus = "Bought";
-            else if (actionType === "LOST") finalStatus = "Closed - Did Not Buy";
-            else if (actionType === "OTHER") {
+            let finalStatus = actionType;
+            if (actionType === "OTHER") {
                 let customReason = prompt("Please type the custom status or reason:");
                 if (!customReason || customReason.trim() === "") return; 
-                // Strips weird characters so they don't break the database
                 finalStatus = "Other: " + customReason.replace(/['"]/g, ""); 
             }
 
             hideCloseModal();
             document.getElementById('walkinList').innerHTML = '<div class="empty-msg">Updating database...</div>';
 
-            let formData = new FormData();
-            formData.append('action', 'closeLead');
-            formData.append('row', targetRowToClose);
-            formData.append('result', finalStatus);
-
             try {
-                await fetch(scriptURL, { method: 'POST', body: formData });
+                await fetch(`${scriptURL}?action=closeLead&row=${targetRowToClose}&result=${encodeURIComponent(finalStatus)}`);
                 loadWalkins(); 
             } catch (err) {
                 alert("Failed to close lead.");
