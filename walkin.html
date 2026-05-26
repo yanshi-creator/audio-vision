@@ -27,13 +27,8 @@
         input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
         .submit-btn { background: #00bfa5; color: white; padding: 12px; border: none; width: 100%; font-size: 16px; font-weight: bold; border-radius: 6px; margin-top: 20px; cursor: pointer;}
         
-        .view-toggle { display:flex; margin-bottom:15px; background:#ddd; border-radius:6px; overflow:hidden; width:fit-content; }
-        .view-toggle button { padding:10px 20px; border:none; font-weight:bold; cursor:pointer; transition:0.2s; font-size:14px; }
-        .view-btn-active { background:#004d40; color:white; }
-        .view-btn-inactive { background:transparent; color:#555; }
-
-        .tab-container { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 15px; border-bottom: 2px solid #ddd; padding-bottom: 5px;}
-        .tab-btn { background: #ddd; border: none; padding: 8px 15px; font-weight: bold; border-radius: 20px; cursor: pointer; color: #555; font-size:13px;}
+        .tab-container { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; margin-bottom: 20px; border-bottom: 2px solid #ddd; padding-bottom: 10px;}
+        .tab-btn { background: #ddd; border: none; padding: 10px 18px; font-weight: bold; border-radius: 20px; cursor: pointer; color: #555; font-size:14px; transition: 0.2s;}
         .tab-btn.active { background: #004d40; color: white; }
 
         .lead-card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 15px; border-left: 5px solid #00bfa5; position: relative;}
@@ -126,15 +121,11 @@
             </div>
 
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="margin:0;">Dashboard <button onclick="loadWalkins()" style="font-size:12px; cursor:pointer; margin-left:10px;">🔄 Refresh</button></h3>
+                <h3 style="margin:0;">Dashboard (Active & Completed) <button onclick="loadWalkins()" style="font-size:12px; cursor:pointer; margin-left:10px;">🔄 Refresh</button></h3>
             </div>
             
-            <div class="view-toggle" style="margin-top:15px;">
-                <button id="btnViewActive" class="view-btn-active" onclick="switchViewMode('Active')">🟢 Active Leads</button>
-                <button id="btnViewComp" class="view-btn-inactive" onclick="switchViewMode('Completed')">📁 Completed Leads</button>
-            </div>
-
             <div class="tab-container" id="salesmanTabs"></div>
+            
             <div id="walkinList">
                 <div class="empty-msg">Loading leads...</div>
             </div>
@@ -148,7 +139,6 @@
 
         let allLeads = [];
         let currentActiveTab = "All";
-        let currentViewMode = "Active"; 
         let targetRowToClose = null;
 
         window.onload = () => { 
@@ -170,7 +160,6 @@
             loadWalkins(); 
         }
 
-        // HANDLES NEW LEADS (Iframe bypass)
         function handleFormSubmit() {
             const btn = document.getElementById('subBtn');
             btn.innerText = "Saving...";
@@ -181,13 +170,12 @@
                 btn.innerText = "+ SAVE LEAD";
                 btn.disabled = false;
                 loadWalkins();
-            }, 1500); // Waits 1.5s for iframe to process, then refreshes page
+            }, 1500); 
         }
 
         async function loadWalkins() {
             const listDiv = document.getElementById('walkinList');
             try {
-                // Loading data STILL uses fetch because GET requests are usually safe
                 const resp = await fetch(scriptURL + "?action=getWalkins");
                 const data = await resp.json();
                 
@@ -198,7 +186,13 @@
                     return;
                 }
 
+                // SMART SORT: Active Leads top (by date), Completed Leads bottom
                 allLeads = data.sort((a, b) => {
+                    let aActive = a.status === "Active Lead" ? 0 : 1;
+                    let bActive = b.status === "Active Lead" ? 0 : 1;
+                    
+                    if (aActive !== bActive) return aActive - bActive; 
+
                     if (!a.followUp && !b.followUp) return 0;
                     if (!a.followUp) return 1; 
                     if (!b.followUp) return -1; 
@@ -211,27 +205,8 @@
             }
         }
 
-        function switchViewMode(mode) {
-            currentViewMode = mode;
-            currentActiveTab = "All"; 
-            
-            if (mode === 'Active') {
-                document.getElementById('btnViewActive').className = 'view-btn-active';
-                document.getElementById('btnViewComp').className = 'view-btn-inactive';
-            } else {
-                document.getElementById('btnViewActive').className = 'view-btn-inactive';
-                document.getElementById('btnViewComp').className = 'view-btn-active';
-            }
-            renderDashboard();
-        }
-
         function renderDashboard() {
-            let baseLeads = allLeads.filter(item => {
-                if (currentViewMode === 'Active') return item.status === "Active Lead";
-                return item.status !== "Active Lead"; 
-            });
-
-            let salesmen = [...new Set(baseLeads.map(item => item.salesman))];
+            let salesmen = [...new Set(allLeads.map(item => item.salesman))];
             const tabDiv = document.getElementById('salesmanTabs');
             
             let tabsHtml = `<button class="tab-btn ${currentActiveTab === 'All' ? 'active' : ''}" onclick="switchTab('All')">All Leads</button>`;
@@ -241,9 +216,9 @@
             });
             tabDiv.innerHTML = tabsHtml;
 
-            let filteredLeads = baseLeads;
+            let filteredLeads = allLeads;
             if (currentActiveTab !== "All") {
-                filteredLeads = baseLeads.filter(item => (item.salesman || "Unassigned") === currentActiveTab);
+                filteredLeads = allLeads.filter(item => (item.salesman || "Unassigned") === currentActiveTab);
             }
 
             const listDiv = document.getElementById('walkinList');
@@ -252,7 +227,7 @@
             today.setHours(0,0,0,0); 
 
             if(filteredLeads.length === 0) {
-                listDiv.innerHTML = `<div class="empty-msg">No ${currentViewMode.toLowerCase()} leads for ${currentActiveTab}.</div>`;
+                listDiv.innerHTML = `<div class="empty-msg">No leads for ${currentActiveTab}.</div>`;
                 return;
             }
 
@@ -261,8 +236,10 @@
                 const diffDays = Math.floor(Math.abs(today - walkInDate) / (1000 * 60 * 60 * 24));
                 let daysText = diffDays === 0 ? "Walked in Today" : `Walked in ${diffDays} days ago`;
 
+                let isActive = item.status === "Active Lead";
                 let isAlarm = false;
                 let followText = "No follow-up set";
+                
                 if (item.followUp) {
                     const fDate = new Date(item.followUp);
                     followText = "Follow up on: " + fDate.toLocaleDateString();
@@ -274,13 +251,14 @@
                 if(item.up2) updatesHtml += `<div class="update-item">${item.up2}</div>`;
                 if(item.up3) updatesHtml += `<div class="update-item">${item.up3}</div>`;
 
-                let cardStyle = currentViewMode === 'Completed' ? 'border-left-color: #90a4ae; opacity: 0.9;' : '';
-                let statusBadge = currentViewMode === 'Completed' 
+                // If not active, grey out the card
+                let cardStyle = !isActive ? 'border-left-color: #90a4ae; opacity: 0.85; background: #fafafa;' : '';
+                let statusBadge = !isActive 
                     ? `<span style="background:#e0e0e0; color:#424242; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:bold;">Final Status: ${item.status}</span>`
                     : (isAlarm ? `<span class="alarm-badge">🚨 FOLLOW UP DUE!</span>` : `<span class="days-badge">⏳ ${daysText}</span>`);
 
                 listDiv.innerHTML += `
-                <div class="lead-card ${isAlarm && currentViewMode === 'Active' ? 'alarm' : ''}" style="${cardStyle}">
+                <div class="lead-card ${isAlarm && isActive ? 'alarm' : ''}" style="${cardStyle}">
                     <div class="card-header">
                         <span>📅 Logged: ${walkInDate.toLocaleDateString()}</span>
                         ${statusBadge}
@@ -292,17 +270,17 @@
                         <span class="salesman-badge">👤 ${item.salesman || 'Unassigned'}</span>
                     </h3>
                     
-                    <div style="background:rgba(0,0,0,0.03); padding:10px; border-radius:4px; margin-top:10px; font-size:14px; border:1px solid ${isAlarm && currentViewMode === 'Active' ? '#ef9a9a' : '#e0e0e0'};">
+                    <div style="background:rgba(0,0,0,0.03); padding:10px; border-radius:4px; margin-top:10px; font-size:14px; border:1px solid ${isAlarm && isActive ? '#ef9a9a' : '#e0e0e0'};">
                         <b>Looking for:</b> <span style="color:#00695c; font-weight:bold;">${item.brand}</span><br>
                         <div style="margin-top: 5px; border-top: 1px dashed #ccc; padding-top: 5px; color:#444; white-space: pre-wrap;"><b>Original Note:</b> ${item.notes}</div>
                         ${updatesHtml}
                     </div>
                     
-                    ${currentViewMode === 'Active' ? `<div style="margin-top:8px; font-size:12px; font-weight:bold; color:${isAlarm ? '#d32f2f' : '#888'};">
+                    ${isActive ? `<div style="margin-top:8px; font-size:12px; font-weight:bold; color:${isAlarm ? '#d32f2f' : '#888'};">
                         ${isAlarm ? `⚠️ THIS CUSTOMER IS DUE FOR A CALL TODAY!` : `📌 ${followText}`}
                     </div>` : ''}
 
-                    ${currentViewMode === 'Active' ? `<button class="btn-close" onclick="openCloseModal('${item.row}', '${item.name.replace(/'/g, "\\'")}')">Update / Close Lead</button>` : ''}
+                    ${isActive ? `<button class="btn-close" onclick="openCloseModal('${item.row}', '${item.name.replace(/'/g, "\\'")}')">Update / Close Lead</button>` : ''}
                 </div>`;
             });
         }
@@ -324,22 +302,19 @@
             targetRowToClose = null;
         }
 
-        // --- THE INVISIBLE IFRAME MAGIC ---
         function submitNote() {
             let noteText = document.getElementById('newLeadNote').value.trim();
             if(!noteText) { alert("Please type an update note first."); return; }
             
-            // Populate the hidden form and submit it
             document.getElementById('actionField').value = 'updateLeadNote';
             document.getElementById('rowField').value = targetRowToClose;
             document.getElementById('noteField').value = noteText;
-            document.getElementById('resultField').value = ""; // Not used for notes
+            document.getElementById('resultField').value = ""; 
             document.getElementById('actionForm').submit();
 
             hideCloseModal();
             document.getElementById('walkinList').innerHTML = '<div class="empty-msg">Saving update...</div>';
             
-            // Wait 1.5 seconds for Google to process, then refresh
             setTimeout(loadWalkins, 1500); 
         }
 
@@ -351,17 +326,15 @@
                 finalStatus = "Other: " + customReason.replace(/['"]/g, ""); 
             }
 
-            // Populate the hidden form and submit it
             document.getElementById('actionField').value = 'closeLead';
             document.getElementById('rowField').value = targetRowToClose;
             document.getElementById('resultField').value = finalStatus;
-            document.getElementById('noteField').value = ""; // Not used for closing
+            document.getElementById('noteField').value = ""; 
             document.getElementById('actionForm').submit();
 
             hideCloseModal();
             document.getElementById('walkinList').innerHTML = '<div class="empty-msg">Updating database...</div>';
 
-            // Wait 1.5 seconds for Google to process, then refresh
             setTimeout(loadWalkins, 1500); 
         }
     </script>
