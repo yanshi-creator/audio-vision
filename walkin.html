@@ -7,17 +7,13 @@
     <style>
         body { font-family: 'Segoe UI', sans-serif; background: #eef2f3; padding: 0; margin: 0; color: #333; }
         
-        /* LOGIN SCREEN */
         #loginScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #004d40; z-index: 9999; display: flex; justify-content: center; align-items: center; }
         .login-box { background: white; padding: 35px 30px; border-radius: 12px; text-align: center; width: 320px; box-shadow: 0 10px 25px rgba(0,0,0,0.3); }
         .login-box h2 { margin-top: 0; color: #004d40; letter-spacing: 1px;}
         .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 2px solid #eee; border-radius: 6px; box-sizing: border-box; font-size: 14px; outline: none; transition: 0.3s;}
-        .login-box input:focus { border-color: #00bfa5; }
-        .login-box button { background: #00bfa5; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 15px; transition: 0.2s;}
-        .login-box button:hover { background: #009688; }
+        .login-box button { background: #00bfa5; color: white; border: none; padding: 12px; width: 100%; border-radius: 6px; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 15px;}
         #loginError { color: #d32f2f; font-size: 13px; font-weight: bold; display: none; margin-top: 15px; background: #ffebee; padding: 8px; border-radius: 4px;}
 
-        /* MAIN APP */
         .header { background: #004d40; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100;}
         .logo { font-size: 22px; font-weight: bold; letter-spacing: 1px; color: #fff;}
         .logo span { font-size: 14px; color: #a7ffeb; font-weight: normal; margin-left: 5px; }
@@ -31,32 +27,30 @@
         input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
         .submit-btn { background: #00bfa5; color: white; padding: 12px; border: none; width: 100%; font-size: 16px; font-weight: bold; border-radius: 6px; margin-top: 20px; cursor: pointer;}
         
-        /* DYNAMIC TABS */
         .tab-container { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 15px; border-bottom: 2px solid #ddd; padding-bottom: 5px;}
-        .tab-btn { background: #ddd; border: none; padding: 8px 15px; font-weight: bold; border-radius: 20px; cursor: pointer; color: #555; transition: 0.2s; font-size:13px;}
+        .tab-btn { background: #ddd; border: none; padding: 8px 15px; font-weight: bold; border-radius: 20px; cursor: pointer; color: #555; font-size:13px;}
         .tab-btn.active { background: #004d40; color: white; }
 
-        /* CARDS */
         .lead-card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 15px; border-left: 5px solid #00bfa5; position: relative;}
         .lead-card.alarm { border-left-color: #d32f2f; background: #fff5f5; }
         .card-header { display: flex; justify-content: space-between; font-size: 12px; color: #888; font-weight: bold; border-bottom: 1px dashed #eee; padding-bottom: 8px; margin-bottom: 8px;}
         .days-badge { background: #e0f2f1; color: #00695c; padding: 3px 8px; border-radius: 12px; font-size: 11px;}
         .alarm-badge { background: #d32f2f; color: white; padding: 3px 8px; border-radius: 12px; font-size: 11px; animation: blinker 2s linear infinite;}
         .salesman-badge { background: #fff3e0; color: #e65100; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold; margin-left: 10px; border: 1px solid #ffe0b2;}
-        
         @keyframes blinker { 50% { opacity: 0.5; } }
-        .btn-close { background: #455a64; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; margin-top: 10px;}
         
-        /* MODAL */
+        .update-item { background: #e8f5e9; padding: 6px 10px; border-radius: 4px; font-size: 13px; color: #2e7d32; margin-top: 6px; border-left: 3px solid #4caf50;}
+        
+        .btn-close { background: #455a64; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; margin-top: 15px;}
+        
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
-        .modal-content { background: white; width: 90%; max-width: 420px; padding: 25px; border-radius: 12px; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.2);}
+        .modal-content { background: white; width: 90%; max-width: 420px; padding: 25px; border-radius: 12px; position: relative;}
         .close-btn { position: absolute; right: 15px; top: 10px; font-size: 24px; cursor: pointer; color: #888; }
         .action-btn { width: 100%; padding: 12px; margin-top: 10px; border: none; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; color: white; }
         .btn-bought { background: #28a745; }
         .btn-lost { background: #d32f2f; }
         .btn-other { background: #f39c12; }
         .btn-update-note { background: #004d40; padding: 10px; margin-top: 8px;}
-
         .empty-msg { text-align: center; color: #888; font-style: italic; padding: 20px; }
     </style>
 </head>
@@ -100,7 +94,6 @@
         </div>
 
         <div class="container">
-            
             <div class="form-area">
                 <h3>Log New Walk-In Customer</h3>
                 <form id="walkinForm">
@@ -108,30 +101,23 @@
                         <div><label>Customer Name *</label><input type="text" name="wName" required></div>
                         <div><label>Phone Number</label><input type="tel" name="wPhone" maxlength="10"></div>
                     </div>
-                    
                     <div class="flex-row">
                         <div><label>Salesperson Name *</label><input type="text" name="wSalesman" placeholder="e.g. Ajay" required></div>
                         <div><label>Looking For (Brand/Product) *</label><input type="text" name="wBrand" placeholder="e.g. 55 inch LG TV" required></div>
                     </div>
-
                     <label>Remind me to follow up on:</label>
                     <input type="date" name="wFollowUp">
-
                     <label>Customer Notes / Quotes given</label>
                     <textarea name="wNotes" rows="2" placeholder="e.g. Quoted ₹45,000. Said he will discuss with wife and come back." required></textarea>
-
                     <button type="submit" id="subBtn" class="submit-btn">+ SAVE LEAD</button>
                 </form>
             </div>
 
             <h3>Active Walk-In Leads <button onclick="loadWalkins()" style="float:right; font-size:12px; cursor:pointer;">🔄 Refresh</button></h3>
-            
             <div class="tab-container" id="salesmanTabs"></div>
-
             <div id="walkinList">
                 <div class="empty-msg">Loading active leads...</div>
             </div>
-
         </div>
     </div>
 
@@ -144,15 +130,11 @@
         let targetRowToClose = null;
 
         window.onload = () => { 
-            if(sessionStorage.getItem('avAuthWalkin') === 'true') {
-                unlockApp();
-            }
+            if(sessionStorage.getItem('avAuthWalkin') === 'true') unlockApp();
         };
 
         function checkLogin() {
-            const u = document.getElementById('loginUser').value;
-            const p = document.getElementById('loginPass').value;
-            if (u === 'admin' && p === 'av123') {
+            if (document.getElementById('loginUser').value === 'admin' && document.getElementById('loginPass').value === 'av123') {
                 sessionStorage.setItem('avAuthWalkin', 'true');
                 unlockApp();
             } else {
@@ -173,7 +155,7 @@
             btn.disabled = true;
 
             fetch(scriptURL, { method: 'POST', body: new FormData(e.target) })
-            .then(response => response.json())
+            .then(r => r.json())
             .then(data => { 
                 document.getElementById('walkinForm').reset();
                 btn.innerText = "+ SAVE LEAD";
@@ -204,7 +186,6 @@
                 });
 
                 renderDashboard();
-
             } catch (err) {
                 listDiv.innerHTML = "Error loading leads.";
             }
@@ -222,9 +203,7 @@
             tabDiv.innerHTML = tabsHtml;
 
             let filteredLeads = allLeads;
-            if (currentActiveTab !== "All") {
-                filteredLeads = allLeads.filter(item => (item.salesman || "Unassigned") === currentActiveTab);
-            }
+            if (currentActiveTab !== "All") filteredLeads = allLeads.filter(item => (item.salesman || "Unassigned") === currentActiveTab);
 
             const listDiv = document.getElementById('walkinList');
             listDiv.innerHTML = "";
@@ -238,8 +217,7 @@
 
             filteredLeads.forEach(item => {
                 const walkInDate = new Date(item.date);
-                const diffTime = Math.abs(today - walkInDate);
-                const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+                const diffDays = Math.floor(Math.abs(today - walkInDate) / (1000 * 60 * 60 * 24));
                 let daysText = diffDays === 0 ? "Walked in Today" : `Walked in ${diffDays} days ago`;
 
                 let isAlarm = false;
@@ -249,6 +227,11 @@
                     followText = "Follow up on: " + fDate.toLocaleDateString();
                     if (fDate <= today) isAlarm = true;
                 }
+
+                let updatesHtml = "";
+                if(item.up1) updatesHtml += `<div class="update-item">${item.up1}</div>`;
+                if(item.up2) updatesHtml += `<div class="update-item">${item.up2}</div>`;
+                if(item.up3) updatesHtml += `<div class="update-item">${item.up3}</div>`;
 
                 listDiv.innerHTML += `
                 <div class="lead-card ${isAlarm ? 'alarm' : ''}">
@@ -265,7 +248,8 @@
                     
                     <div style="background:rgba(0,0,0,0.03); padding:10px; border-radius:4px; margin-top:10px; font-size:14px; border:1px solid ${isAlarm ? '#ef9a9a' : '#e0e0e0'};">
                         <b>Looking for:</b> <span style="color:#00695c; font-weight:bold;">${item.brand}</span><br>
-                        <div style="margin-top: 5px; border-top: 1px dashed #ccc; padding-top: 5px; color:#444; white-space: pre-wrap;"><b>Timeline/Notes:</b><br>${item.notes}</div>
+                        <div style="margin-top: 5px; border-top: 1px dashed #ccc; padding-top: 5px; color:#444; white-space: pre-wrap;"><b>Original Note:</b> ${item.notes}</div>
+                        ${updatesHtml}
                     </div>
                     
                     <div style="margin-top:8px; font-size:12px; font-weight:bold; color:${isAlarm ? '#d32f2f' : '#888'};">
@@ -294,32 +278,25 @@
             targetRowToClose = null;
         }
 
-        // --- BULLETPROOF FIX: USING NO-CORS ---
+        // USING HIGH-RELIABILITY GET REQUESTS TO BYPASS GOOGLE SECURITY BLOCKS
         async function submitNote() {
             let noteText = document.getElementById('newLeadNote').value.trim();
-            if(!noteText) {
-                alert("Please type an update note first.");
-                return;
-            }
+            if(!noteText) { alert("Please type an update note first."); return; }
             
             hideCloseModal();
             document.getElementById('walkinList').innerHTML = '<div class="empty-msg">Saving update...</div>';
 
-            const url = `${scriptURL}?action=updateLeadNote&row=${targetRowToClose}&note=${encodeURIComponent(noteText)}`;
-            
             try {
-                // 'no-cors' forces the browser to send the update and ignore the strict security bounce-back
-                await fetch(url, { mode: 'no-cors' });
-                setTimeout(loadWalkins, 1200); // Give Google 1 second to save before refreshing the page
+                await fetch(`${scriptURL}?action=updateLeadNote&row=${targetRowToClose}&note=${encodeURIComponent(noteText)}`);
+                loadWalkins(); 
             } catch (err) {
-                alert("Failed to save note. Please check connection.");
+                alert("Failed to save note.");
                 loadWalkins();
             }
         }
 
         async function submitCloseLead(actionType) {
             let finalStatus = actionType;
-            
             if (actionType === "Other") {
                 let customReason = prompt("Please type the custom status or reason:");
                 if (!customReason || customReason.trim() === "") return; 
@@ -329,12 +306,9 @@
             hideCloseModal();
             document.getElementById('walkinList').innerHTML = '<div class="empty-msg">Updating database...</div>';
 
-            const url = `${scriptURL}?action=closeLead&row=${targetRowToClose}&result=${encodeURIComponent(finalStatus)}`;
-
             try {
-                // 'no-cors' forces the browser to send the update and ignore the strict security bounce-back
-                await fetch(url, { mode: 'no-cors' });
-                setTimeout(loadWalkins, 1200); // Give Google 1 second to save before refreshing the page
+                await fetch(`${scriptURL}?action=closeLead&row=${targetRowToClose}&result=${encodeURIComponent(finalStatus)}`);
+                loadWalkins(); 
             } catch (err) {
                 alert("Failed to close lead.");
                 loadWalkins();
