@@ -87,7 +87,7 @@
             <div style="border-top:2px dashed #ddd; padding-top:20px; text-align:center;">
                 <p style="font-size:13px; color:#666; margin-bottom:10px; margin-top:0;">Or, what is the final status to close this lead?</p>
                 <button class="action-btn btn-bought" onclick="submitCloseLead('Bought')">✅ BOUGHT (Closed Won)</button>
-                <button class="action-btn btn-lost" onclick="submitCloseLead('Didn\'t Buy')">❌ DIDN'T BUY (Lost)</button>
+                <button class="action-btn btn-lost" onclick="submitCloseLead('Did Not Buy')">❌ DIDN'T BUY (Lost)</button>
                 <button class="action-btn btn-other" onclick="submitCloseLead('Other')">📝 OTHER (Custom Reason)</button>
             </div>
         </div>
@@ -136,7 +136,7 @@
     </div>
 
     <script>
-        // ⚠️ YOUR WALK-IN GOOGLE SCRIPT URL ⚠️
+        // Your exact script URL
         const scriptURL = 'https://script.google.com/macros/s/AKfycbzb0PYWQdDywPfIZSiUDft1SGtbBKzpz0nsDvcgpg0wwJKUDPfFnTQLxFx5xoYq9TWn/exec';
 
         let allLeads = [];
@@ -294,7 +294,7 @@
             targetRowToClose = null;
         }
 
-        // --- BULLETPROOF GET ACTIONS ---
+        // --- BULLETPROOF FIX: USING NO-CORS ---
         async function submitNote() {
             let noteText = document.getElementById('newLeadNote').value.trim();
             if(!noteText) {
@@ -305,11 +305,14 @@
             hideCloseModal();
             document.getElementById('walkinList').innerHTML = '<div class="empty-msg">Saving update...</div>';
 
+            const url = `${scriptURL}?action=updateLeadNote&row=${targetRowToClose}&note=${encodeURIComponent(noteText)}`;
+            
             try {
-                await fetch(`${scriptURL}?action=updateLeadNote&row=${targetRowToClose}&note=${encodeURIComponent(noteText)}`);
-                loadWalkins(); 
+                // 'no-cors' forces the browser to send the update and ignore the strict security bounce-back
+                await fetch(url, { mode: 'no-cors' });
+                setTimeout(loadWalkins, 1200); // Give Google 1 second to save before refreshing the page
             } catch (err) {
-                alert("Failed to save note.");
+                alert("Failed to save note. Please check connection.");
                 loadWalkins();
             }
         }
@@ -326,9 +329,12 @@
             hideCloseModal();
             document.getElementById('walkinList').innerHTML = '<div class="empty-msg">Updating database...</div>';
 
+            const url = `${scriptURL}?action=closeLead&row=${targetRowToClose}&result=${encodeURIComponent(finalStatus)}`;
+
             try {
-                await fetch(`${scriptURL}?action=closeLead&row=${targetRowToClose}&result=${encodeURIComponent(finalStatus)}`);
-                loadWalkins(); 
+                // 'no-cors' forces the browser to send the update and ignore the strict security bounce-back
+                await fetch(url, { mode: 'no-cors' });
+                setTimeout(loadWalkins, 1200); // Give Google 1 second to save before refreshing the page
             } catch (err) {
                 alert("Failed to close lead.");
                 loadWalkins();
