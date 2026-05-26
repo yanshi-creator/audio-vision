@@ -80,9 +80,9 @@
 
             <div style="border-top:2px dashed #ddd; padding-top:20px; text-align:center;">
                 <p style="font-size:13px; color:#666; margin-bottom:10px; margin-top:0;">Or, what is the final status to close this lead?</p>
-                <button class="action-btn btn-bought" onclick="submitCloseLead('Bought')">✅ BOUGHT (Closed Won)</button>
-                <button class="action-btn btn-lost" onclick="submitCloseLead('Did Not Buy')">❌ DIDN'T BUY (Lost)</button>
-                <button class="action-btn btn-other" onclick="submitCloseLead('Other')">📝 OTHER (Custom Reason)</button>
+                <button class="action-btn btn-bought" onclick="submitCloseLead('WON')">✅ BOUGHT (Closed Won)</button>
+                <button class="action-btn btn-lost" onclick="submitCloseLead('LOST')">❌ DIDN'T BUY (Lost)</button>
+                <button class="action-btn btn-other" onclick="submitCloseLead('OTHER')">📝 OTHER (Custom Reason)</button>
             </div>
         </div>
     </div>
@@ -148,6 +148,7 @@
             loadWalkins(); 
         }
 
+        // 1. FORM SUBMISSION (Works perfectly)
         document.getElementById('walkinForm').addEventListener('submit', e => {
             e.preventDefault();
             const btn = document.getElementById('subBtn');
@@ -278,7 +279,7 @@
             targetRowToClose = null;
         }
 
-        // USING HIGH-RELIABILITY GET REQUESTS TO BYPASS GOOGLE SECURITY BLOCKS
+        // 2. BULLETPROOF UPDATE (Using POST to match Form Submission)
         async function submitNote() {
             let noteText = document.getElementById('newLeadNote').value.trim();
             if(!noteText) { alert("Please type an update note first."); return; }
@@ -286,28 +287,43 @@
             hideCloseModal();
             document.getElementById('walkinList').innerHTML = '<div class="empty-msg">Saving update...</div>';
 
+            let formData = new FormData();
+            formData.append('action', 'updateLeadNote');
+            formData.append('row', targetRowToClose);
+            formData.append('note', noteText);
+
             try {
-                await fetch(`${scriptURL}?action=updateLeadNote&row=${targetRowToClose}&note=${encodeURIComponent(noteText)}`);
+                await fetch(scriptURL, { method: 'POST', body: formData });
                 loadWalkins(); 
             } catch (err) {
-                alert("Failed to save note.");
+                alert("Failed to save note. Please check connection.");
                 loadWalkins();
             }
         }
 
+        // 3. BULLETPROOF CLOSE (Using POST to match Form Submission)
         async function submitCloseLead(actionType) {
-            let finalStatus = actionType;
-            if (actionType === "Other") {
+            let finalStatus = "";
+            
+            if (actionType === "WON") finalStatus = "Bought";
+            else if (actionType === "LOST") finalStatus = "Closed - Did Not Buy";
+            else if (actionType === "OTHER") {
                 let customReason = prompt("Please type the custom status or reason:");
                 if (!customReason || customReason.trim() === "") return; 
-                finalStatus = "Other: " + customReason;
+                // Strips weird characters so they don't break the database
+                finalStatus = "Other: " + customReason.replace(/['"]/g, ""); 
             }
 
             hideCloseModal();
             document.getElementById('walkinList').innerHTML = '<div class="empty-msg">Updating database...</div>';
 
+            let formData = new FormData();
+            formData.append('action', 'closeLead');
+            formData.append('row', targetRowToClose);
+            formData.append('result', finalStatus);
+
             try {
-                await fetch(`${scriptURL}?action=closeLead&row=${targetRowToClose}&result=${encodeURIComponent(finalStatus)}`);
+                await fetch(scriptURL, { method: 'POST', body: formData });
                 loadWalkins(); 
             } catch (err) {
                 alert("Failed to close lead.");
