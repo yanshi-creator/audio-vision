@@ -27,8 +27,13 @@
         input, select, textarea { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
         .submit-btn { background: #00bfa5; color: white; padding: 12px; border: none; width: 100%; font-size: 16px; font-weight: bold; border-radius: 6px; margin-top: 20px; cursor: pointer;}
         
-        .tab-container { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 15px; margin-bottom: 20px; border-bottom: 2px solid #ddd; padding-bottom: 10px;}
-        .tab-btn { background: #ddd; border: none; padding: 10px 18px; font-weight: bold; border-radius: 20px; cursor: pointer; color: #555; font-size:14px; transition: 0.2s;}
+        .view-toggle { display:flex; margin-bottom:15px; background:#ddd; border-radius:6px; overflow:hidden; width:fit-content; }
+        .view-toggle button { padding:10px 20px; border:none; font-weight:bold; cursor:pointer; transition:0.2s; font-size:14px; }
+        .view-btn-active { background:#004d40; color:white; }
+        .view-btn-inactive { background:transparent; color:#555; }
+
+        .tab-container { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 15px; border-bottom: 2px solid #ddd; padding-bottom: 5px;}
+        .tab-btn { background: #ddd; border: none; padding: 8px 15px; font-weight: bold; border-radius: 20px; cursor: pointer; color: #555; font-size:13px;}
         .tab-btn.active { background: #004d40; color: white; }
 
         .lead-card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-bottom: 15px; border-left: 5px solid #00bfa5; position: relative;}
@@ -49,7 +54,7 @@
         .action-btn { width: 100%; padding: 12px; margin-top: 10px; border: none; border-radius: 6px; font-weight: bold; font-size: 14px; cursor: pointer; color: white; }
         .btn-bought { background: #28a745; }
         .btn-lost { background: #d32f2f; }
-        .btn-other { background: #f39c12; }
+        .btn-cancel { background: #7f8c8d; }
         .btn-update-note { background: #004d40; padding: 10px; margin-top: 8px;}
         .empty-msg { text-align: center; color: #888; font-style: italic; padding: 20px; }
     </style>
@@ -73,16 +78,16 @@
             <h3 id="modalLeadName" style="margin-top:0; color:#1a1a1a;">Update Lead</h3>
             
             <div style="background:#f4f9f9; padding:15px; border-radius:8px; border:1px solid #b2dfdb; margin-bottom:20px;">
-                <label style="margin-top:0; color:#00695c;">Add an Update (Keeps Lead Open)</label>
+                <label style="margin-top:0; color:#00695c;">Add an Update (Up to 3 Updates)</label>
                 <textarea id="newLeadNote" rows="2" placeholder="e.g. Called them, they asked for 2 more days..."></textarea>
                 <button class="action-btn btn-update-note" onclick="submitNote()">💾 Save Note & Keep Open</button>
             </div>
 
             <div style="border-top:2px dashed #ddd; padding-top:20px; text-align:center;">
                 <p style="font-size:13px; color:#666; margin-bottom:10px; margin-top:0;">Or, what is the final status to close this lead?</p>
-                <button class="action-btn btn-bought" onclick="submitCloseLead('Bought')">✅ BOUGHT (Closed Won)</button>
-                <button class="action-btn btn-lost" onclick="submitCloseLead('Closed - Did Not Buy')">❌ DIDN'T BUY (Lost)</button>
-                <button class="action-btn btn-other" onclick="submitCloseLead('OTHER')">📝 OTHER (Custom Reason)</button>
+                <button class="action-btn btn-bought" onclick="submitCloseLead('Buy')">✅ BUY</button>
+                <button class="action-btn btn-lost" onclick="submitCloseLead('Did Not Buy')">❌ DIDN'T BUY</button>
+                <button class="action-btn btn-cancel" onclick="submitCloseLead('Cancel')">🚫 CANCEL</button>
             </div>
             
             <form id="actionForm" target="hiddenFrame" method="POST" action="https://script.google.com/macros/s/AKfycbzb0PYWQdDywPfIZSiUDft1SGtbBKzpz0nsDvcgpg0wwJKUDPfFnTQLxFx5xoYq9TWn/exec" style="display:none;">
@@ -121,11 +126,15 @@
             </div>
 
             <div style="display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="margin:0;">Dashboard (Active & Completed) <button onclick="loadWalkins()" style="font-size:12px; cursor:pointer; margin-left:10px;">🔄 Refresh</button></h3>
+                <h3 style="margin:0;">Dashboard <button onclick="loadWalkins()" style="font-size:12px; cursor:pointer; margin-left:10px;">🔄 Refresh</button></h3>
             </div>
             
+            <div class="view-toggle" style="margin-top:15px;">
+                <button id="btnViewActive" class="view-btn-active" onclick="switchViewMode('Active')">🟢 Active Leads</button>
+                <button id="btnViewComp" class="view-btn-inactive" onclick="switchViewMode('Completed')">📁 Completed Leads</button>
+            </div>
+
             <div class="tab-container" id="salesmanTabs"></div>
-            
             <div id="walkinList">
                 <div class="empty-msg">Loading leads...</div>
             </div>
@@ -139,6 +148,7 @@
 
         let allLeads = [];
         let currentActiveTab = "All";
+        let currentViewMode = "Active"; 
         let targetRowToClose = null;
 
         window.onload = () => { 
@@ -186,7 +196,6 @@
                     return;
                 }
 
-                // SMART SORT: Active Leads top (by date), Completed Leads bottom
                 allLeads = data.sort((a, b) => {
                     let aActive = a.status === "Active Lead" ? 0 : 1;
                     let bActive = b.status === "Active Lead" ? 0 : 1;
@@ -205,8 +214,27 @@
             }
         }
 
+        function switchViewMode(mode) {
+            currentViewMode = mode;
+            currentActiveTab = "All"; 
+            
+            if (mode === 'Active') {
+                document.getElementById('btnViewActive').className = 'view-btn-active';
+                document.getElementById('btnViewComp').className = 'view-btn-inactive';
+            } else {
+                document.getElementById('btnViewActive').className = 'view-btn-inactive';
+                document.getElementById('btnViewComp').className = 'view-btn-active';
+            }
+            renderDashboard();
+        }
+
         function renderDashboard() {
-            let salesmen = [...new Set(allLeads.map(item => item.salesman))];
+            let baseLeads = allLeads.filter(item => {
+                if (currentViewMode === 'Active') return item.status === "Active Lead";
+                return item.status !== "Active Lead"; 
+            });
+
+            let salesmen = [...new Set(baseLeads.map(item => item.salesman))];
             const tabDiv = document.getElementById('salesmanTabs');
             
             let tabsHtml = `<button class="tab-btn ${currentActiveTab === 'All' ? 'active' : ''}" onclick="switchTab('All')">All Leads</button>`;
@@ -216,9 +244,9 @@
             });
             tabDiv.innerHTML = tabsHtml;
 
-            let filteredLeads = allLeads;
+            let filteredLeads = baseLeads;
             if (currentActiveTab !== "All") {
-                filteredLeads = allLeads.filter(item => (item.salesman || "Unassigned") === currentActiveTab);
+                filteredLeads = baseLeads.filter(item => (item.salesman || "Unassigned") === currentActiveTab);
             }
 
             const listDiv = document.getElementById('walkinList');
@@ -227,7 +255,7 @@
             today.setHours(0,0,0,0); 
 
             if(filteredLeads.length === 0) {
-                listDiv.innerHTML = `<div class="empty-msg">No leads for ${currentActiveTab}.</div>`;
+                listDiv.innerHTML = `<div class="empty-msg">No ${currentViewMode.toLowerCase()} leads for ${currentActiveTab}.</div>`;
                 return;
             }
 
@@ -251,7 +279,6 @@
                 if(item.up2) updatesHtml += `<div class="update-item">${item.up2}</div>`;
                 if(item.up3) updatesHtml += `<div class="update-item">${item.up3}</div>`;
 
-                // If not active, grey out the card
                 let cardStyle = !isActive ? 'border-left-color: #90a4ae; opacity: 0.85; background: #fafafa;' : '';
                 let statusBadge = !isActive 
                     ? `<span style="background:#e0e0e0; color:#424242; padding:3px 8px; border-radius:12px; font-size:11px; font-weight:bold;">Final Status: ${item.status}</span>`
@@ -318,17 +345,12 @@
             setTimeout(loadWalkins, 1500); 
         }
 
-        function submitCloseLead(actionType) {
-            let finalStatus = actionType;
-            if (actionType === "OTHER") {
-                let customReason = prompt("Please type the custom status or reason:");
-                if (!customReason || customReason.trim() === "") return; 
-                finalStatus = "Other: " + customReason.replace(/['"]/g, ""); 
-            }
-
+        function submitCloseLead(finalStatus) {
             document.getElementById('actionField').value = 'closeLead';
             document.getElementById('rowField').value = targetRowToClose;
-            document.getElementById('resultField').value = finalStatus;
+            
+            // Sending the safe, exact string to Google Sheet
+            document.getElementById('resultField').value = finalStatus; 
             document.getElementById('noteField').value = ""; 
             document.getElementById('actionForm').submit();
 
